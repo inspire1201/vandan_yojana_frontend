@@ -27,4 +27,9 @@ jobs:
       - name: Delete old container
         run: docker rm -f vandan_frontend_app
       - name: Run Docker Container
-        run: docker run -d -p 4000:80 --name vandan_frontend_app proplerer19/vandan_frontend  -e VITE_API_BASE_URL=http://44.197.21.241:6000 
+        run: |
+          docker run -d \
+           -p 4000:80 \
+           --name vandan_frontend_app \
+           -e VITE_API_BASE_URL=http://44.197.21.241:6000 \
+           proplerer19/vandan_frontend:latest
