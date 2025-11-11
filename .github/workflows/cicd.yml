@@ -31,5 +31,5 @@ jobs:
           docker run -d \
            -p 4000:80 \
            --name vandan_frontend_app \
-           -e VITE_API_BASE_URL=http://44.197.21.241:6000 \
+           -e VITE_API_BASE_URL=http://44.197.21.241:8080 \
            proplerer19/vandan_frontend:latest
