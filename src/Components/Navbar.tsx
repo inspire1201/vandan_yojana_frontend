@@ -161,13 +161,33 @@ const Navbar: React.FC = () => {
                 </div>
                 <button
                   onClick={() => {
-                    navigate('/chart-data');
+                    navigate('/district-chart-data');
                     setIsUserMenuOpen(false);
                   }}
                   className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
                 >
                   <Map className="w-4 h-4" />
                   {t('navbar.districtMap')}
+                </button>
+                <button
+                  onClick={() => {
+                    navigate('/assembly-chart-data');
+                    setIsUserMenuOpen(false);
+                  }}
+                  className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+                >
+                  <Map className="w-4 h-4" />
+                  {t('navbar.vidhansabhaMap')}
+                </button>
+                <button
+                  onClick={() => {
+                    navigate('/loksabha-chart-data');
+                    setIsUserMenuOpen(false);
+                  }}
+                  className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+                >
+                  <Map className="w-4 h-4" />
+                  {t('navbar.loksabhaMap')}
                 </button>
                 {user?.role === 'ADMIN' && (
                   <>

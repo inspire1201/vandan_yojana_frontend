@@ -3,20 +3,20 @@ import { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { ClipLoader } from "react-spinners";
 import axiosInstance from "../service/axiosInstance";
-import { districts } from "../constants/district";
+import { assembly } from "../constants/vidhansabha";
 import toast from "react-hot-toast";
 
-const DatawrapperMap = () => {
+const AssemblyWrapper = () => {
   const navigate = useNavigate();
   const [iframeKey, setIframeKey] = useState(Date.now());
   const [dynamicHeight, setDynamicHeight] = useState("350px");
   const [isLoading, setIsLoading] = useState(false);
   const [isMapLoading, setIsMapLoading] = useState(true);
-  const [districtValues, setDistrictValues] = useState<{ [key: string]: string }>({});
-  const [editingDistrict, setEditingDistrict] = useState<string | null>(null);
+  const [assemblyValues, setAssemblyValues] = useState<{ [key: string]: string }>({});
+  const [editingAssembly, setEditingAssembly] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [hideTableAfterSubmit, setHideTableAfterSubmit] = useState(false);
-  const chartId = "fGzC6";
+  const chartId = "lXDRQ";
   const version = 1;
 
   const widthClasses = "w-[95%] sm:w-[85%] md:w-[75%] lg:w-[65%] xl:w-[60%]";
@@ -27,11 +27,11 @@ const DatawrapperMap = () => {
     setIframeKey(Date.now());
   }, []);
 
-  const getDistrictMapData = useCallback(async () => {
+  const getAssemblyMapData = useCallback(async () => {
     setIsLoading(true);
     setIsMapLoading(true);
     try {
-      await axiosInstance.get("/districts/get-district-map-data");
+      await axiosInstance.get("/districts/get-assembly-map-data");
       refreshMap();
     } catch (error) {
       console.error("Error fetching district map data:", error);
@@ -41,53 +41,53 @@ const DatawrapperMap = () => {
     }
   }, [refreshMap]);
 
-  const generateAllDistricts = useCallback(() => {
+  const generateAllAssembly = useCallback(() => {
     if (loading) return;
     const newValues: { [key: string]: string } = {};
-    districts.forEach((district) => {
+    assembly.forEach((assemblyItem) => {
       const randomValue = Math.floor(Math.random() * 90 + 10);
-      newValues[district.value] = randomValue.toString().padStart(2, "0");
+      newValues[assemblyItem.value] = randomValue.toString().padStart(2, "0");
     });
-    setDistrictValues(newValues);
-    setEditingDistrict(null);
+    setAssemblyValues(newValues);
+    setEditingAssembly(null);
     setHideTableAfterSubmit(false);
   }, [loading]);
 
-  const clearAllDistricts = useCallback(() => {
+  const clearAllAssembly = useCallback(() => {
     if (loading) return;
-    setDistrictValues({});
-    setEditingDistrict(null);
+    setAssemblyValues({});
+    setEditingAssembly(null);
   }, [loading]);
 
-  const handleValueChange = useCallback((districtValue: string, newValue: string) => {
+  const handleValueChange = useCallback((assemblyValue: string, newValue: string) => {
     if (/^\d{0,2}$/.test(newValue)) {
-      setDistrictValues((prev) => ({ ...prev, [districtValue]: newValue }));
+      setAssemblyValues((prev) => ({ ...prev, [assemblyValue]: newValue }));
     }
   }, []);
 
-  const handleValueClick = useCallback((districtValue: string) => {
-    setEditingDistrict(districtValue);
+  const handleValueClick = useCallback((assemblyValue: string) => {
+    setEditingAssembly(assemblyValue);
   }, []);
 
-  const handleSaveValue = useCallback((districtValue: string) => {
-    const value = districtValues[districtValue];
+  const handleSaveValue = useCallback((assemblyValue: string) => {
+    const value = assemblyValues[assemblyValue];
     if (value && /^\d{2}$/.test(value)) {
-      setEditingDistrict(null);
+      setEditingAssembly(null);
     }
-  }, [districtValues]);
+  }, [assemblyValues]);
 
-  const handleKeyPress = useCallback((e: React.KeyboardEvent<HTMLInputElement>, districtValue: string) => {
+  const handleKeyPress = useCallback((e: React.KeyboardEvent<HTMLInputElement>, assemblyValue: string) => {
     if (e.key === 'Enter') {
-      handleSaveValue(districtValue);
+      handleSaveValue(assemblyValue);
     } else if (e.key === 'Escape') {
-      setEditingDistrict(null);
+      setEditingAssembly(null);
     }
   }, [handleSaveValue]);
 
   const handleSubmit = useCallback(async () => {
     if (loading) return;
-    const allValid = districts.every(d => {
-      const val = districtValues[d.value];
+    const allValid = assembly.every(a => {
+      const val = assemblyValues[a.value];
       return val && /^\d{2}$/.test(val) && parseInt(val, 10) >= 10 && parseInt(val, 10) <= 99;
     });
     if (!allValid) {
@@ -100,23 +100,24 @@ const DatawrapperMap = () => {
     setIsMapLoading(true);
     
     try {
-      const data = districts.map((district) => ({
-        district: district.district,
-        value: districtValues[district.value],
+      const data = assembly.map((assemblyItem) => ({
+        assembly: assemblyItem.Assembly_name,
+        value: assemblyValues[assemblyItem.value],
       }));
       console.log('Submitting data:', data);
-      await axiosInstance.post('/districts/update-district-map', { data });
-      toast.success('District values submitted successfully!');
-      setEditingDistrict(null);
-      setDistrictValues({});
+      // await axiosInstance.post('/assembly/update-assembly-map', { data });
+      await axiosInstance.post('/districts/update-assembly-map', { data });
+      toast.success('Assembly values submitted successfully!');
+      setEditingAssembly(null);
+      setAssemblyValues({});
       refreshMap();
     } catch (error) {
-      console.error('Error submitting district values:', error);
-      toast.error('Failed to submit district values');
+      console.error('Error submitting assembly values:', error);
+      toast.error('Failed to submit assembly values');
     } finally {
       setIsSubmitting(false);
     }
-  }, [districtValues, loading, refreshMap]);
+  }, [assemblyValues, loading, refreshMap]);
 
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
@@ -165,7 +166,7 @@ const DatawrapperMap = () => {
           <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 w-full sm:w-auto">
             {/* Refresh */}
             <button
-              onClick={getDistrictMapData}
+              onClick={getAssemblyMapData}
               disabled={loading}
               className={`flex items-center justify-center gap-1 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg text-xs sm:text-sm font-medium shadow-md transition-all duration-200 w-full sm:w-auto ${
                 loading ? "bg-gray-400 cursor-not-allowed" : "bg-blue-600 hover:bg-blue-700 text-white"
@@ -187,7 +188,7 @@ const DatawrapperMap = () => {
             </button>
             {/* Generate Random */}
             <button
-              onClick={generateAllDistricts}
+              onClick={generateAllAssembly}
               disabled={loading}
               className={`flex items-center justify-center gap-1 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg text-xs sm:text-sm font-medium shadow-md transition-all duration-200 w-full sm:w-auto ${
                 loading ? "bg-gray-400 cursor-not-allowed text-white" : "bg-green-600 hover:bg-green-700 text-white"
@@ -196,14 +197,14 @@ const DatawrapperMap = () => {
               <svg className="w-3 h-3 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4" />
               </svg>
-              Generate Districts
+              Generate Assembly
             </button>
             {/* Clear */}
             <button
-              onClick={clearAllDistricts}
-              disabled={loading || Object.keys(districtValues).length === 0}
+              onClick={clearAllAssembly}
+              disabled={loading || Object.keys(assemblyValues).length === 0}
               className={`flex items-center justify-center gap-1 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg text-xs sm:text-sm font-medium shadow-md transition-all duration-200 w-full sm:w-auto ${
-                loading || Object.keys(districtValues).length === 0 ? "bg-gray-400 cursor-not-allowed text-white" : "bg-red-600 hover:bg-red-700 text-white"
+                loading || Object.keys(assemblyValues).length === 0 ? "bg-gray-400 cursor-not-allowed text-white" : "bg-red-600 hover:bg-red-700 text-white"
               }`}
             >
               <svg className="w-3 h-3 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -214,7 +215,7 @@ const DatawrapperMap = () => {
           </div>
         </div>
         {/* Submit Button */}
-        {Object.keys(districtValues).length > 0 && (
+        {Object.keys(assemblyValues).length > 0 && (
           <div className="flex justify-center">
             <button
               onClick={handleSubmit}
@@ -234,7 +235,7 @@ const DatawrapperMap = () => {
                   <svg className="w-3 h-3 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
                   </svg>
-                  <span className="hidden sm:inline">Submit District Values</span>
+                  <span className="hidden sm:inline">Submit Assembly Values</span>
                   <span className="sm:hidden">Submit</span>
                 </>
               )}
@@ -244,31 +245,31 @@ const DatawrapperMap = () => {
       </div>
 
       {/* 📊 Table Section */}
-      {Object.keys(districtValues).length > 0 && !hideTableAfterSubmit && (
+      {Object.keys(assemblyValues).length > 0 && !hideTableAfterSubmit && (
         <div className={`${widthClasses} overflow-hidden rounded-xl shadow-xl bg-white`}>
           <table className="min-w-full text-sm text-left border-collapse">
             <thead className="bg-gray-100 text-gray-700 uppercase text-xs border-b">
               <tr>
                 <th className="py-3 px-4 font-semibold">#</th>
-                <th className="py-3 px-4 font-semibold">District</th>
+                <th className="py-3 px-4 font-semibold">Assembly</th>
                 <th className="py-3 px-4 font-semibold text-center">Value</th>
               </tr>
             </thead>
             <tbody>
-              {districts.map((district, idx) => (
-                <tr key={district.value} className="border-b last:border-none hover:bg-gray-50 transition-colors">
+              {assembly.map((assemblyItem, idx) => (
+                <tr key={assemblyItem.value} className="border-b last:border-none hover:bg-gray-50 transition-colors">
                   <td className="py-2.5 px-4 text-gray-600">{idx + 1}</td>
                   <td className="py-2.5 px-4 font-medium text-gray-800">
-                    {district.district}
+                    {assemblyItem.Assembly_name}
                   </td>
                   <td className="py-2.5 px-4 text-center">
-                    {editingDistrict === district.value ? (
+                    {editingAssembly === assemblyItem.value ? (
                       <input
                         type="text"
-                        value={districtValues[district.value] || ""}
-                        onChange={(e) => handleValueChange(district.value, e.target.value)}
-                        onBlur={() => handleSaveValue(district.value)}
-                        onKeyDown={(e) => handleKeyPress(e, district.value)}
+                        value={assemblyValues[assemblyItem.value] || ""}
+                        onChange={(e) => handleValueChange(assemblyItem.value, e.target.value)}
+                        onBlur={() => handleSaveValue(assemblyItem.value)}
+                        onKeyDown={(e) => handleKeyPress(e, assemblyItem.value)}
                         className="w-14 text-center border border-gray-300 rounded-md py-1 focus:ring-2 focus:ring-blue-400 outline-none"
                         maxLength={2}
                         autoFocus
@@ -276,10 +277,10 @@ const DatawrapperMap = () => {
                     ) : (
                       <span
                         className="font-semibold text-blue-600 cursor-pointer hover:bg-blue-50 px-2 py-1 rounded transition-colors"
-                        onClick={() => handleValueClick(district.value)}
+                        onClick={() => handleValueClick(assemblyItem.value)}
                         title="Click to edit"
                       >
-                        {districtValues[district.value] || ""}
+                        {assemblyValues[assemblyItem.value] || ""}
                       </span>
                     )}
                   </td>
@@ -311,4 +312,4 @@ const DatawrapperMap = () => {
   );
 };
 
-export default DatawrapperMap;
+export default AssemblyWrapper;
