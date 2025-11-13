@@ -81,14 +81,14 @@ function BoothDetails({ assemblyId, assemblyName, onBack }: BoothDetailsProps) {
         {t('booth.boothDetails')} - {assemblyName}
       </h2>
       
-      <div className="bg-white rounded-lg shadow overflow-hidden">
+      <div className="bg-white rounded-lg shadow overflow-hidden max-w-2xl mx-auto">
         <div className="px-6 py-4 bg-gray-50 border-b">
           <h3 className="text-lg font-medium text-gray-900">
             {t('booth.allBooths')} ({booths.length} {t('booth.booths')})
           </h3>
         </div>
         <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
+          <table className="w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -96,9 +96,6 @@ function BoothDetails({ assemblyId, assemblyName, onBack }: BoothDetailsProps) {
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   {t('booth.boothName')}
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  {t('booth.assemblyId')}
                 </th>
               </tr>
             </thead>
@@ -110,9 +107,6 @@ function BoothDetails({ assemblyId, assemblyName, onBack }: BoothDetailsProps) {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                     {booth.booth_name}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {booth.assemblyId}
                   </td>
                 </tr>
               ))}
