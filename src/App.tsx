@@ -6,6 +6,7 @@ import { useAppSelector, useAppDispatch } from './store/hooks';
 import { loadFromStorage } from './store/authSlice';
 import Navbar from './Components/Navbar';
 import ReportsDashboard from './Components/Report/ReportsDashboard';
+import BoothSummary from './Components/Report/BoothSummary';
 import Login from './Components/auth/Login';
 import RegisterUser from './Components/auth/RegisterUser';
 import AllUsers from './Components/auth/AllUsers';
@@ -45,6 +46,7 @@ function AppContent() {
         <Route path="/assembly-chart-data" element={<ProtectedRoute><AssemblyWrapper/></ProtectedRoute>} />
         <Route path="/loksabha-chart-data" element={<ProtectedRoute><LokSabhaWrapper/></ProtectedRoute>} />
         <Route path="/reports" element={<ProtectedRoute><ReportsDashboard /></ProtectedRoute>} />
+        <Route path="/booth-summary" element={<ProtectedRoute><BoothSummary /></ProtectedRoute>} />
    
         <Route path="/register" element={<ProtectedRoute><RegisterUser /></ProtectedRoute>} />
         <Route path="/users" element={<ProtectedRoute><AllUsers /></ProtectedRoute>} />

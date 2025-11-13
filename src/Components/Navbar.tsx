@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import Logo from "../assets/bjp_logo.png";
 import HeaderImage from "../assets/mahatari_header.jpg";
-import { Mail, Phone, Globe, ChevronDown, Menu, X, User, LogOut, UserPlus, Users, Map } from "lucide-react";
+import { Mail, Phone, Globe, ChevronDown, Menu, X, User, LogOut, UserPlus, Users } from "lucide-react";
 import { useAppSelector, useAppDispatch } from "../store/hooks";
 import { logout } from "../store/authSlice";
 import { toast } from "react-hot-toast";
@@ -136,6 +136,47 @@ const Navbar: React.FC = () => {
 
          
 
+          {/* Center: Navigation Buttons */}
+          <div className={`w-full sm:w-auto ${
+            isMobileMenuOpen ? "flex" : "hidden sm:flex"
+          } justify-center mt-2 sm:mt-0 flex-1`}>
+            {isAuthenticated && (
+              <div className="flex gap-1 sm:gap-2 flex-wrap justify-center">
+               
+                <button
+                  onClick={() => navigate('/reports')}
+                  className="bg-white text-orange-500 font-semibold rounded-md shadow-md hover:bg-orange-50 transition-all px-2 sm:px-3 py-2 text-xs sm:text-sm"
+                >
+                  {t('navbar.reports')}
+                </button>
+                <button
+                  onClick={() => navigate('/booth-summary')}
+                  className="bg-white text-orange-500 font-semibold rounded-md shadow-md hover:bg-orange-50 transition-all px-2 sm:px-3 py-2 text-xs sm:text-sm"
+                >
+                  {t('navbar.boothSummary')}
+                </button>
+                <button
+                  onClick={() => navigate('/district-chart-data')}
+                  className="bg-white text-orange-500 font-semibold rounded-md shadow-md hover:bg-orange-50 transition-all px-2 sm:px-3 py-2 text-xs sm:text-sm"
+                >
+                  {t('navbar.districtMapBtn')}
+                </button>
+                <button
+                  onClick={() => navigate('/assembly-chart-data')}
+                  className="bg-white text-orange-500 font-semibold rounded-md shadow-md hover:bg-orange-50 transition-all px-2 sm:px-3 py-2 text-xs sm:text-sm"
+                >
+                  {t('navbar.vidhansabhaBtn')}
+                </button>
+                <button
+                  onClick={() => navigate('/loksabha-chart-data')}
+                  className="bg-white text-orange-500 font-semibold rounded-md shadow-md hover:bg-orange-50 transition-all px-2 sm:px-3 py-2 text-xs sm:text-sm"
+                >
+                  {t('navbar.loksabhaBtn')}
+                </button>
+              </div>
+            )
+           } </div>
+
           {/* Right: User Menu or Login Button */}
           <div className={`w-full sm:w-auto ${
             isMobileMenuOpen ? "flex" : "hidden sm:flex"
@@ -159,36 +200,7 @@ const Navbar: React.FC = () => {
                   <p className="text-xs text-gray-500">Code: {user?.code}</p>
                   <p className="text-xs text-gray-500">{user?.role}</p>
                 </div>
-                <button
-                  onClick={() => {
-                    navigate('/district-chart-data');
-                    setIsUserMenuOpen(false);
-                  }}
-                  className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
-                >
-                  <Map className="w-4 h-4" />
-                  {t('navbar.districtMap')}
-                </button>
-                <button
-                  onClick={() => {
-                    navigate('/assembly-chart-data');
-                    setIsUserMenuOpen(false);
-                  }}
-                  className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
-                >
-                  <Map className="w-4 h-4" />
-                  {t('navbar.vidhansabhaMap')}
-                </button>
-                <button
-                  onClick={() => {
-                    navigate('/loksabha-chart-data');
-                    setIsUserMenuOpen(false);
-                  }}
-                  className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
-                >
-                  <Map className="w-4 h-4" />
-                  {t('navbar.loksabhaMap')}
-                </button>
+
                 {user?.role === 'ADMIN' && (
                   <>
                     <button

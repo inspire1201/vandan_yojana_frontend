@@ -19,6 +19,10 @@ const resources = {
       'navbar.callCenter': 'Call Center',
       'navbar.whatsappObd': 'WhatsApp/OBD/SMS',
       'navbar.dashboard': 'Dashboard',
+      'navbar.boothSummary': 'Booth Summary',
+      'navbar.districtMapBtn': 'District Map',
+      'navbar.vidhansabhaBtn': 'Vidhan Sabha',
+      'navbar.loksabhaBtn': 'Lok Sabha',
       
       // Login Page
       'login.title': 'Login',
@@ -83,6 +87,27 @@ const resources = {
       'reports.vidhansabhaDesc': 'This section is under development and will be available soon.',
       'reports.loksabhaDesc': 'This section is under development and will be available soon.',
       
+      // Booth Summary
+      'booth.assemblyList': 'Assembly List',
+      'booth.allAssemblies': 'All Assemblies',
+      'booth.assemblies': 'assemblies',
+      'booth.assemblyName': 'Assembly Name',
+      'booth.boothCount': 'Booth Count',
+      'booth.action': 'Action',
+      'booth.showAllBooths': 'Show All Booths',
+      'booth.boothDetails': 'Booth Details',
+      'booth.backToAssemblies': 'Back to Assemblies',
+      'booth.allBooths': 'All Booths',
+      'booth.booths': 'booths',
+      'booth.boothNo': 'Booth No.',
+      'booth.boothName': 'Booth Name',
+      'booth.assemblyId': 'Assembly ID',
+      'booth.loadingAssemblies': 'Loading assemblies...',
+      'booth.loadingBooths': 'Loading booths...',
+      'booth.failedAssemblies': 'Failed to fetch assemblies',
+      'booth.failedBooths': 'Failed to fetch booths',
+      'booth.noBooths': 'No booths found for this assembly.',
+      
       // Common
       'common.admin': 'ADMIN',
       'common.districtUser': 'DISTRICT_USER',
@@ -106,6 +131,10 @@ const resources = {
       'navbar.callCenter': 'कॉल सेंटर',
       'navbar.whatsappObd': 'व्हाट्सऐप/ओबीडी/एसएमएस',
       'navbar.dashboard': 'डैशबोर्ड',
+      'navbar.boothSummary': 'बूथ सारांश',
+      'navbar.districtMapBtn': 'जिला मानचित्र',
+      'navbar.vidhansabhaBtn': 'विधानसभा',
+      'navbar.loksabhaBtn': 'लोकसभा',
       
       // Login Page
       'login.title': 'लॉगिन',
@@ -169,6 +198,27 @@ const resources = {
       'reports.loading': 'रिपोर्ट अनुभाग लोड हो रहा है...',
       'reports.vidhansabhaDesc': 'यह अनुभाग विकास के अधीन है और जल्द ही उपलब्ध होगा।',
       'reports.loksabhaDesc': 'यह अनुभाग विकास के अधीन है और जल्द ही उपलब्ध होगा।',
+      
+      // Booth Summary
+      'booth.assemblyList': 'विधानसभा सूची',
+      'booth.allAssemblies': 'सभी विधानसभाएं',
+      'booth.assemblies': 'विधानसभाएं',
+      'booth.assemblyName': 'विधानसभा नाम',
+      'booth.boothCount': 'बूथ संख्या',
+      'booth.action': 'कार्य',
+      'booth.showAllBooths': 'सभी बूथ दिखाएं',
+      'booth.boothDetails': 'बूथ विवरण',
+      'booth.backToAssemblies': 'विधानसभाओं पर वापस जाएं',
+      'booth.allBooths': 'सभी बूथ',
+      'booth.booths': 'बूथ',
+      'booth.boothNo': 'बूथ नं.',
+      'booth.boothName': 'बूथ नाम',
+      'booth.assemblyId': 'विधानसभा आईडी',
+      'booth.loadingAssemblies': 'विधानसभाएं लोड हो रही हैं...',
+      'booth.loadingBooths': 'बूथ लोड हो रहे हैं...',
+      'booth.failedAssemblies': 'विधानसभाएं लाने में असफल',
+      'booth.failedBooths': 'बूथ लाने में असफल',
+      'booth.noBooths': 'इस विधानसभा के लिए कोई बूथ नहीं मिला।',
       
       // Common
       'common.admin': 'व्यवस्थापक',
