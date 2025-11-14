@@ -154,6 +154,22 @@ class UserService {
       throw error;
     }
   }
+
+  public async updateSingleBooth(
+    boothId: number,
+    updateData: {
+      bla2_name?: string;
+      bla2_mobile_no?: string;
+      slr_per?: string;
+    }
+  ): Promise<ApiResponse<any>> {
+    try {
+      const res = await axiosInstance.put(`/districts/update-booth/${boothId}`, updateData);
+      return res.data;
+    } catch (error: any) {
+      throw error;
+    }
+  }
 }
 
 

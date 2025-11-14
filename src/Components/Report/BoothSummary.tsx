@@ -2,6 +2,7 @@ import  { useState } from 'react';
 import AssemblyList from './AssemblyList';
 import BoothDetails from './BoothDetails';
 
+
 function BoothSummary() {
   const [selectedAssembly, setSelectedAssembly] = useState<{id: number, name: string} | null>(null);
 
