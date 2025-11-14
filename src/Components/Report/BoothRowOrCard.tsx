@@ -29,13 +29,42 @@ interface BoothRowOrCardProps {
 }
 
 function BoothRowOrCard({ booth, isMobile, getBlaStatus, onSave, isSaving }: BoothRowOrCardProps) {
-//   const { t } = useTranslation();
   const [isEditing, setIsEditing] = useState(false);
   const [localEditData, setLocalEditData] = useState<{bla2_name: string, bla2_mobile_no: string, slr_per: string}>({
     bla2_name: booth.bla2_name,
     bla2_mobile_no: booth.bla2_mobile_no,
     slr_per: booth.slr_per
   });
+  const [errors, setErrors] = useState<{bla2_name?: string, bla2_mobile_no?: string, slr_per?: string}>({});
+
+  const validateFields = () => {
+    const newErrors: {bla2_name?: string, bla2_mobile_no?: string, slr_per?: string} = {};
+    
+    if (!localEditData.bla2_name.trim()) {
+      newErrors.bla2_name = 'Name is required';
+    }
+    
+    if (!localEditData.bla2_mobile_no.trim()) {
+      newErrors.bla2_mobile_no = 'Mobile number is required';
+    } else if (!/^\d{10}$/.test(localEditData.bla2_mobile_no)) {
+      newErrors.bla2_mobile_no = 'Mobile number must be 10 digits';
+    }
+    
+    if (!localEditData.slr_per.trim()) {
+      newErrors.slr_per = 'Percentage is required';
+    } else if (isNaN(Number(localEditData.slr_per)) || Number(localEditData.slr_per) < 0 || Number(localEditData.slr_per) > 100) {
+      newErrors.slr_per = 'Percentage must be between 0-100';
+    }
+    
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const hasChanges = () => {
+    return localEditData.bla2_name !== booth.bla2_name ||
+           localEditData.bla2_mobile_no !== booth.bla2_mobile_no ||
+           localEditData.slr_per !== booth.slr_per;
+  };
 
   const handleEdit = () => {
     setLocalEditData({
@@ -43,20 +72,27 @@ function BoothRowOrCard({ booth, isMobile, getBlaStatus, onSave, isSaving }: Boo
       bla2_mobile_no: booth.bla2_mobile_no,
       slr_per: booth.slr_per
     });
+    setErrors({});
     setIsEditing(true);
   };
 
   const handleCancel = () => {
     setIsEditing(false);
+    setErrors({});
   };
 
   const handleSave = async () => {
+    if (!validateFields()) return;
+    
+    if (!hasChanges()) {
+      setIsEditing(false);
+      return;
+    }
+    
     const result = await onSave(booth.id, localEditData);
     if (result.success) {
       setIsEditing(false);
-      // Optional: Add a success notification here
-    } else {
-      // Optional: Add an error notification here
+      setErrors({});
     }
   };
 
@@ -65,6 +101,9 @@ function BoothRowOrCard({ booth, isMobile, getBlaStatus, onSave, isSaving }: Boo
       ...prev,
       [field]: value
     }));
+    if (errors[field]) {
+      setErrors(prev => ({ ...prev, [field]: undefined }));
+    }
   };
 
   const MobileCard = (
@@ -92,42 +131,54 @@ function BoothRowOrCard({ booth, isMobile, getBlaStatus, onSave, isSaving }: Boo
               <button
                 onClick={handleSave}
                 disabled={isSaving}
-                className="bg-green-500 text-white p-1 rounded hover:bg-green-600 disabled:opacity-50"
+                className="bg-green-500 text-white px-3 py-2 rounded hover:bg-green-600 disabled:opacity-50 flex items-center gap-1 min-w-[60px]"
               >
-                <Save className="w-3 h-3" />
+                {isSaving ? (
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                ) : (
+                  <Save className="w-4 h-4" />
+                )}
+                <span className="text-sm">Save</span>
               </button>
               <button
                 onClick={handleCancel}
                 disabled={isSaving}
-                className="bg-gray-500 text-white p-1 rounded hover:bg-gray-600 disabled:opacity-50"
+                className="bg-gray-500 text-white px-3 py-2 rounded hover:bg-gray-600 disabled:opacity-50 flex items-center gap-1 min-w-[70px]"
               >
-                <X className="w-3 h-3" />
+                <X className="w-4 h-4" />
+                <span className="text-sm">Cancel</span>
               </button>
             </div>
           ) : (
             <button
               onClick={handleEdit}
-              className="bg-orange-500 text-white p-1 rounded hover:bg-orange-600"
+              className="bg-orange-500 text-white px-3 py-2 rounded hover:bg-orange-600 flex items-center gap-1 min-w-[50px]"
             >
-              <Edit2 className="w-3 h-3" />
+              <Edit2 className="w-4 h-4" />
+              <span className="text-sm">Edit</span>
             </button>
           )}
         </div>
       </div>
       {/* ... Mobile Detail Fields ... */}
       <div className="space-y-2 text-xs">
-        <div className="flex justify-between">
+        <div className="flex justify-between items-start">
           <span className="text-gray-500">BLA2:</span>
-          {isEditing ? (
-            <input
-              type="text"
-              value={localEditData.bla2_name}
-              onChange={(e) => handleFieldChange('bla2_name', e.target.value)}
-              className="text-xs border rounded px-1 py-0.5 w-24"
-            />
-          ) : (
-            <span className="font-medium">{booth.bla2_name}</span>
-          )}
+          <div className="flex flex-col items-end">
+            {isEditing ? (
+              <>
+                <input
+                  type="text"
+                  value={localEditData.bla2_name}
+                  onChange={(e) => handleFieldChange('bla2_name', e.target.value)}
+                  className={`w-32 text-xs border rounded px-2 py-1 ${errors.bla2_name ? 'border-red-500' : ''}`}
+                />
+                {errors.bla2_name && <span className="text-red-500 text-xs mt-1">{errors.bla2_name}</span>}
+              </>
+            ) : (
+              <span className="font-medium">{booth.bla2_name}</span>
+            )}
+          </div>
         </div>
         <div className="flex justify-between">
           <span className="text-gray-500">Status:</span>
@@ -135,31 +186,44 @@ function BoothRowOrCard({ booth, isMobile, getBlaStatus, onSave, isSaving }: Boo
             {getBlaStatus(booth.isBla2).label}
           </span>
         </div>
-        <div className="flex justify-between">
+        <div className="flex justify-between items-start">
           <span className="text-gray-500">Mobile:</span>
-          {isEditing ? (
-            <input
-              type="text"
-              value={localEditData.bla2_mobile_no}
-              onChange={(e) => handleFieldChange('bla2_mobile_no', e.target.value)}
-              className="text-xs border rounded px-1 py-0.5 w-24"
-            />
-          ) : (
-            <span className="font-medium">{booth.bla2_mobile_no}</span>
-          )}
+          <div className="flex flex-col items-end">
+            {isEditing ? (
+              <>
+                <input
+                  type="text"
+                  value={localEditData.bla2_mobile_no}
+                  onChange={(e) => handleFieldChange('bla2_mobile_no', e.target.value)}
+                  className={`w-28 text-xs border rounded px-2 py-1 ${errors.bla2_mobile_no ? 'border-red-500' : ''}`}
+                  maxLength={10}
+                />
+                {errors.bla2_mobile_no && <span className="text-red-500 text-xs mt-1">{errors.bla2_mobile_no}</span>}
+              </>
+            ) : (
+              <span className="font-medium">{booth.bla2_mobile_no}</span>
+            )}
+          </div>
         </div>
-        <div className="flex justify-between">
+        <div className="flex justify-between items-start">
           <span className="text-gray-500">SLR %:</span>
-          {isEditing ? (
-            <input
-              type="number"
-              value={localEditData.slr_per}
-              onChange={(e) => handleFieldChange('slr_per', e.target.value)}
-              className="text-xs border rounded px-1 py-0.5 w-16"
-            />
-          ) : (
-            <span className="font-medium text-green-600">{booth.slr_per}%</span>
-          )}
+          <div className="flex flex-col items-end">
+            {isEditing ? (
+              <>
+                <input
+                  type="number"
+                  value={localEditData.slr_per}
+                  onChange={(e) => handleFieldChange('slr_per', e.target.value)}
+                  className={`w-20 text-xs border rounded px-2 py-1 ${errors.slr_per ? 'border-red-500' : ''}`}
+                  min="0"
+                  max="100"
+                />
+                {errors.slr_per && <span className="text-red-500 text-xs mt-1">{errors.slr_per}</span>}
+              </>
+            ) : (
+              <span className="font-medium text-green-600">{booth.slr_per}%</span>
+            )}
+          </div>
         </div>
         <div className="flex justify-between">
           <span className="text-gray-500">Updates:</span>
@@ -186,12 +250,15 @@ function BoothRowOrCard({ booth, isMobile, getBlaStatus, onSave, isSaving }: Boo
       </td>
       <td className="px-6 py-4 whitespace-nowrap">
         {isEditing ? (
-          <input
-            type="text"
-            value={localEditData.bla2_name}
-            onChange={(e) => handleFieldChange('bla2_name', e.target.value)}
-            className="text-sm border rounded px-2 py-1 w-full"
-          />
+          <div>
+            <input
+              type="text"
+              value={localEditData.bla2_name}
+              onChange={(e) => handleFieldChange('bla2_name', e.target.value)}
+              className={`text-sm border rounded px-2 py-1 w-full ${errors.bla2_name ? 'border-red-500' : ''}`}
+            />
+            {errors.bla2_name && <div className="text-red-500 text-xs mt-1">{errors.bla2_name}</div>}
+          </div>
         ) : (
           <div className="text-sm text-gray-900">{booth.bla2_name}</div>
         )}
@@ -203,24 +270,33 @@ function BoothRowOrCard({ booth, isMobile, getBlaStatus, onSave, isSaving }: Boo
       </td>
       <td className="px-6 py-4 whitespace-nowrap">
         {isEditing ? (
-          <input
-            type="text"
-            value={localEditData.bla2_mobile_no}
-            onChange={(e) => handleFieldChange('bla2_mobile_no', e.target.value)}
-            className="text-sm border rounded px-2 py-1 w-full"
-          />
+          <div>
+            <input
+              type="text"
+              value={localEditData.bla2_mobile_no}
+              onChange={(e) => handleFieldChange('bla2_mobile_no', e.target.value)}
+              className={`text-sm border rounded px-2 py-1 w-full ${errors.bla2_mobile_no ? 'border-red-500' : ''}`}
+              maxLength={10}
+            />
+            {errors.bla2_mobile_no && <div className="text-red-500 text-xs mt-1">{errors.bla2_mobile_no}</div>}
+          </div>
         ) : (
           <div className="text-sm text-gray-900">{booth.bla2_mobile_no}</div>
         )}
       </td>
       <td className="px-6 py-4 whitespace-nowrap">
         {isEditing ? (
-          <input
-            type="number"
-            value={localEditData.slr_per}
-            onChange={(e) => handleFieldChange('slr_per', e.target.value)}
-            className="text-sm border rounded px-2 py-1 w-20"
-          />
+          <div>
+            <input
+              type="number"
+              value={localEditData.slr_per}
+              onChange={(e) => handleFieldChange('slr_per', e.target.value)}
+              className={`text-sm border rounded px-2 py-1 w-20 ${errors.slr_per ? 'border-red-500' : ''}`}
+              min="0"
+              max="100"
+            />
+            {errors.slr_per && <div className="text-red-500 text-xs mt-1">{errors.slr_per}</div>}
+          </div>
         ) : (
           <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
             {booth.slr_per}%
@@ -243,7 +319,11 @@ function BoothRowOrCard({ booth, isMobile, getBlaStatus, onSave, isSaving }: Boo
               disabled={isSaving}
               className="bg-green-500 text-white px-3 py-1 rounded hover:bg-green-600 disabled:opacity-50 flex items-center gap-1"
             >
-              <Save className="w-4 h-4" />
+              {isSaving ? (
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+              ) : (
+                <Save className="w-4 h-4" />
+              )}
               Save
             </button>
             <button
