@@ -167,93 +167,138 @@ export const BlockReportPage: React.FC = () => {
   const urbanCount = allBlocks.filter((b) => b.Block_Type === "U").length;
 
   return (
-    <div className="space-y-6">
-      <DistrictSelect selected={selectedDistrict} onChange={(id, name) => handleDistrictChange(id, name || "")} />
-      
-    
+    <div className="space-y-6 p-4 sm:p-6">
+      {/* Header Section */}
+      <div className="bg-white rounded-lg p-4 border border-gray-200">
+        <h2 className="text-lg font-semibold text-gray-900 mb-3">Block Report Generator</h2>
+        <DistrictSelect selected={selectedDistrict} onChange={(id, name) => handleDistrictChange(id, name || "")} />
+      </div>
 
       {/* Loading blocks */}
-      {loadingBlocks && <BlockFetchingLoader />}
+      {loadingBlocks && (
+        <div className="bg-white rounded-lg p-4 border border-gray-200">
+          <BlockFetchingLoader />
+        </div>
+      )}
       
       {/* Blocks error */}
       {blocksError && (
-        <ErrorMessage 
-          message={blocksError} 
-          onRetry={() => selectedDistrict && handleDistrictChange(selectedDistrict, selectedDistrictName)} 
-        />
+        <div className="bg-white rounded-lg p-4 border border-gray-200">
+          <ErrorMessage 
+            message={blocksError} 
+            onRetry={() => selectedDistrict && handleDistrictChange(selectedDistrict, selectedDistrictName)} 
+          />
+        </div>
       )}
 
       {selectedDistrict && allBlocks.length > 0 && !loadingBlocks && (
-        <div className="space-y-4">
-          <div className="flex justify-center gap-6">
-            {(["ALL", "R", "U"] as const).map((t) => (
-              <label key={t} className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="radio"
-                  name="blockType"
-                  checked={blockType === t}
-                  onChange={() => setBlockType(t)}
-                  className="text-indigo-600"
-                />
-                <span className="text-sm font-medium">
-                  {t === "ALL" ? "All" : t === "R" ? "Rural" : "Urban"}
-                </span>
-              </label>
-            ))}
+        <div className="bg-white rounded-lg border border-gray-200">
+          {/* Filter Section */}
+          <div className="p-4 border-b border-gray-200">
+            <h3 className="text-sm font-medium text-gray-900 mb-3">Block Type</h3>
+            <div className="flex gap-3">
+              {(["ALL", "R", "U"] as const).map((t) => (
+                <label key={t} className={`flex items-center gap-2 cursor-pointer px-3 py-2 rounded-lg border transition-all ${
+                  blockType === t 
+                    ? "bg-orange-50 border-orange-300 text-orange-700" 
+                    : "bg-white border-gray-200 text-gray-600 hover:bg-gray-50"
+                }`}>
+                  <input
+                    type="radio"
+                    name="blockType"
+                    checked={blockType === t}
+                    onChange={() => setBlockType(t)}
+                    className="text-orange-600 focus:ring-orange-500"
+                  />
+                  <span className="text-sm">
+                    {t === "ALL" ? "All" : t === "R" ? "Rural" : "Urban"}
+                  </span>
+                </label>
+              ))}
+            </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg">
-            {[
-              { label: "Total Blocks", value: totalBlocks, color: "indigo" },
-              { label: "Rural", value: ruralCount, color: "green" },
-              { label: "Urban", value: urbanCount, color: "purple" },
-            ].map((stat, i) => (
-              <div key={i} className="text-center p-3 bg-white rounded-lg shadow">
-                <p className="text-gray-600 text-xs sm:text-sm">{stat.label}</p>
-                <p className={`text-2xl font-bold text-${stat.color}-600`}>{stat.value}</p>
+          {/* Statistics Section */}
+          <div className="p-4">
+            <div className="grid grid-cols-3 gap-3">
+              <div className="text-center p-3 bg-orange-50 rounded-lg">
+                <div className="text-lg font-semibold text-orange-600">{totalBlocks}</div>
+                <div className="text-xs text-gray-600">Total</div>
               </div>
-            ))}
+              <div className="text-center p-3 bg-green-50 rounded-lg">
+                <div className="text-lg font-semibold text-green-600">{ruralCount}</div>
+                <div className="text-xs text-gray-600">Rural</div>
+              </div>
+              <div className="text-center p-3 bg-blue-50 rounded-lg">
+                <div className="text-lg font-semibold text-blue-600">{urbanCount}</div>
+                <div className="text-xs text-gray-600">Urban</div>
+              </div>
+            </div>
           </div>
         </div>
       )}
 
-      {/* BLOCK SELECT – ONLY CLEAN NAME */}
+      {/* Block Selection */}
       {groupedBlockNames.length > 0 && !loadingBlocks && !blocksError && (
-        <div className="space-y-2">
-          <label className="block text-sm font-medium text-gray-700">
-            Select Block
-          </label>
-          <select
-            className="w-full p-3 border rounded-lg"
-            value={selectedBlockName}
-            onChange={(e) => setSelectedBlockName(e.target.value)}
-          >
-            <option value="">-- Select Block --</option>
-            {groupedBlockNames.map((name) => (
-              <option key={name} value={name}>
-                {name}
-              </option>
-            ))}
-          </select>
+        <div className="bg-white rounded-lg border border-gray-200">
+          <div className="p-4">
+            <label className="block text-sm font-medium text-gray-700 mb-2">Select Block</label>
+            
+            <div className="relative">
+              <select
+                className="w-full p-3 pr-10 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-orange-500 focus:border-orange-500 bg-white appearance-none cursor-pointer"
+                value={selectedBlockName}
+                onChange={(e) => setSelectedBlockName(e.target.value)}
+              >
+                <option value="">Choose block...</option>
+                {groupedBlockNames.map((name) => (
+                  <option key={name} value={name}>
+                    {name}
+                  </option>
+                ))}
+              </select>
+              
+              <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </div>
+            </div>
+            
+            {selectedBlockName && (
+              <div className="mt-2 bg-orange-50 border border-orange-200 rounded-lg p-2">
+                <span className="text-xs text-orange-700">✓ {selectedBlockName}</span>
+              </div>
+            )}
+          </div>
         </div>
       )}
       
       {/* No blocks available */}
       {selectedDistrict && !loadingBlocks && !blocksError && groupedBlockNames.length === 0 && (
-        <div className="text-center py-8 text-gray-500">
-          No blocks available for selected district
+        <div className="bg-white rounded-lg border border-gray-200 p-4 text-center">
+          <p className="text-sm text-gray-500">No blocks found for the selected district.</p>
         </div>
       )}
 
-      {/* SUBMIT */}
+      {/* Generate Report Button */}
       {selectedBlockName && !loadingBlocks && !blocksError && (
-        <button
-          onClick={handleSubmit}
-          disabled={loadingReport}
-          className="w-full bg-indigo-600 text-white py-3 rounded-lg hover:bg-indigo-700 disabled:opacity-50 flex items-center justify-center"
-        >
-          {loadingReport ? <ButtonLoader /> : "View Report"}
-        </button>
+        <div className="bg-white rounded-lg border border-gray-200 p-4">
+          <button
+            onClick={handleSubmit}
+            disabled={loadingReport}
+            className="w-full bg-orange-500 text-white py-3 px-4 rounded-lg hover:bg-orange-600 disabled:opacity-50 flex items-center justify-center gap-2 font-medium transition-colors"
+          >
+            {loadingReport ? (
+              <>
+                <ButtonLoader />
+                <span>Generating...</span>
+              </>
+            ) : (
+              <span>Generate Report</span>
+            )}
+          </button>
+        </div>
       )}
 
       {/* Loading report */}

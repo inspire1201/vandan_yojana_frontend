@@ -14,17 +14,30 @@ function BoothSummary() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 py-8 px-4 mt-[12vh] md:mt-[20vh]">
-      <div className="max-w-6xl mx-auto bg-white rounded-2xl shadow-xl p-6 sm:p-8">
-        {selectedAssembly ? (
-          <BoothDetails 
-            assemblyId={selectedAssembly.id} 
-            assemblyName={selectedAssembly.name}
-            onBack={handleBackToAssemblies}
-          />
-        ) : (
-          <AssemblyList onAssemblySelect={handleAssemblySelect} />
-        )}
+    <div className="min-h-screen bg-gradient-to-br from-orange-50 to-orange-100 py-6 px-3 sm:px-4">
+      <div className="max-w-7xl mx-auto">
+        {/* Header */}
+        <div className="bg-white rounded-xl shadow-lg p-4 sm:p-6 mb-6">
+          <h1 className="text-2xl sm:text-3xl font-bold text-center text-orange-600 mb-2">
+            {selectedAssembly ? `${selectedAssembly.name} - Booth Details` : 'Assembly & Booth Summary'}
+          </h1>
+          <p className="text-center text-gray-600 text-sm sm:text-base">
+            {selectedAssembly ? 'View all booths in this assembly' : 'Select an assembly to view booth details'}
+          </p>
+        </div>
+
+        {/* Content Area */}
+        <div className="bg-white rounded-xl shadow-lg overflow-hidden">
+          {selectedAssembly ? (
+            <BoothDetails 
+              assemblyId={selectedAssembly.id} 
+              assemblyName={selectedAssembly.name}
+              onBack={handleBackToAssemblies}
+            />
+          ) : (
+            <AssemblyList onAssemblySelect={handleAssemblySelect} />
+          )}
+        </div>
       </div>
     </div>
   );

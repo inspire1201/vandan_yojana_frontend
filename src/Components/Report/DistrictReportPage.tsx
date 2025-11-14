@@ -90,42 +90,65 @@ export const DistrictReportPage: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6">
-      <DistrictSelect selected={selectedDistrict} onChange={handleDistrictChange} />
-      
+    <div className="space-y-6 p-4 sm:p-6">
+      {/* Header Section */}
+      <div className="bg-white rounded-lg p-4 border border-gray-200">
+        <h2 className="text-lg font-semibold text-gray-900 mb-3">District Report Generator</h2>
+        <DistrictSelect selected={selectedDistrict} onChange={handleDistrictChange} />
+      </div>
 
       {selectedDistrict && (
-        <div className="flex justify-center gap-6">
-          {(["ALL", "R", "U"] as const).map((t) => (
-            <label key={t} className="flex items-center gap-2 cursor-pointer">
-              <input
-                type="radio"
-                name="type"
-                checked={type === t}
-                onChange={() => setType(t)}
-                className="text-indigo-600"
-              />
-              <span className="text-sm font-medium">
-                {t === "ALL" ? "All" : t === "R" ? "Rural" : "Urban"}
-              </span>
-            </label>
-          ))}
+        <div className="bg-white rounded-lg border border-gray-200">
+          {/* Filter Section */}
+          <div className="p-4 border-b border-gray-200">
+            <h3 className="text-sm font-medium text-gray-900 mb-3">District Type</h3>
+            <div className="flex gap-3">
+              {(["ALL", "R", "U"] as const).map((t) => (
+                <label key={t} className={`flex items-center gap-2 cursor-pointer px-3 py-2 rounded-lg border transition-all ${
+                  type === t 
+                    ? "bg-orange-50 border-orange-300 text-orange-700" 
+                    : "bg-white border-gray-200 text-gray-600 hover:bg-gray-50"
+                }`}>
+                  <input
+                    type="radio"
+                    name="type"
+                    checked={type === t}
+                    onChange={() => setType(t)}
+                    className="text-orange-600 focus:ring-orange-500"
+                  />
+                  <span className="text-sm">
+                    {t === "ALL" ? "All" : t === "R" ? "Rural" : "Urban"}
+                  </span>
+                </label>
+              ))}
+            </div>
+          </div>
+          
+          {/* Generate Button */}
+          <div className="p-4">
+            <button
+              onClick={handleSubmit}
+              disabled={loading}
+              className="w-full bg-orange-500 text-white py-3 px-4 rounded-lg hover:bg-orange-600 disabled:opacity-50 flex items-center justify-center gap-2 font-medium transition-colors"
+            >
+              {loading ? (
+                <>
+                  <ButtonLoader />
+                  <span>Generating...</span>
+                </>
+              ) : (
+                <span>Generate Report</span>
+              )}
+            </button>
+          </div>
         </div>
       )}
 
-      {selectedDistrict && (
-        <div className="flex justify-center">
-          <button
-            onClick={handleSubmit}
-            disabled={loading}
-            className="px-6 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
-          >
-            {loading ? <ButtonLoader /> : "Generate Report"}
-          </button>
+      {error && (
+        <div className="bg-white rounded-lg border border-gray-200 p-4">
+          <ErrorMessage message={error} onRetry={handleSubmit} />
         </div>
       )}
-
-      {error && <ErrorMessage message={error} onRetry={handleSubmit} />}
 
       {report && (
         <div ref={reportRef}>

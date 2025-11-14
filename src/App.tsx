@@ -11,9 +11,10 @@ import Login from './Components/auth/Login';
 import RegisterUser from './Components/auth/RegisterUser';
 import AllUsers from './Components/auth/AllUsers';
 import './i18n';
-import DistrictWrapper from './wrapper/DistrictWrapper';
-import AssemblyWrapper from './wrapper/AssemblyWrapper';
-import LokSabhaWrapper from './wrapper/LokSabhaWrapper';
+// import DistrictWrapper from './wrapper/DistrictWrapper';
+// import AssemblyWrapper from './wrapper/AssemblyWrapper';
+// import LokSabhaWrapper from './wrapper/LokSabhaWrapper';
+import UnifiedMapPage from './Components/Maps/UnifiedMapPage';
 
 
 
@@ -39,12 +40,13 @@ function AppContent() {
     <>
       <Navbar />
       <Routes>
-        <Route path="/" element={<Navigate to="/reports" replace />} />
+        <Route path="/" element={<ProtectedRoute><ReportsDashboard /></ProtectedRoute>} />
       
         <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
-        <Route path="/district-chart-data" element={<ProtectedRoute><DistrictWrapper/></ProtectedRoute>} />
+        <Route path="/maps" element={<ProtectedRoute><UnifiedMapPage/></ProtectedRoute>} />
+        {/* <Route path="/district-chart-data" element={<ProtectedRoute><DistrictWrapper/></ProtectedRoute>} />
         <Route path="/assembly-chart-data" element={<ProtectedRoute><AssemblyWrapper/></ProtectedRoute>} />
-        <Route path="/loksabha-chart-data" element={<ProtectedRoute><LokSabhaWrapper/></ProtectedRoute>} />
+        <Route path="/loksabha-chart-data" element={<ProtectedRoute><LokSabhaWrapper/></ProtectedRoute>} /> */}
         <Route path="/reports" element={<ProtectedRoute><ReportsDashboard /></ProtectedRoute>} />
         <Route path="/booth-summary" element={<ProtectedRoute><BoothSummary /></ProtectedRoute>} />
    

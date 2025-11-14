@@ -55,9 +55,11 @@ export default function ReportsDashboard() {
       <button
         onClick={handleTabClick}
         disabled={loadingTab}
-        className={`px-4 py-2 rounded-md font-medium transition-all disabled:opacity-50 ${activeTab === tab ? "text-white" : "hover:bg-gray-100"
-          }`}
-        style={activeTab === tab ? {backgroundColor: '#3b954b'} : {color: '#3b954b'}}
+        className={`px-3 sm:px-4 py-2 rounded-lg font-medium transition-all disabled:opacity-50 text-xs sm:text-sm ${
+          activeTab === tab 
+            ? "bg-orange-500 text-white shadow-md" 
+            : "text-orange-600 hover:bg-orange-50 border border-orange-200"
+        }`}
       >
         {tab === 'block' ? t('reports.blockReport') : tab === 'district' ? t('reports.districtReport') : tab === 'vidhansabha' ? t('reports.vidhansabha') : t('reports.loksabha')}
       </button>
@@ -65,43 +67,51 @@ export default function ReportsDashboard() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 py-8 px-4 mt-[12vh] md:mt-[20vh]">
-      <div className="max-w-6xl mx-auto bg-white rounded-2xl shadow-xl p-6 sm:p-8">
-        <h1 className="text-3xl font-bold text-center mb-8" style={{color: '#3b954b'}}>{t('reports.title')}</h1>
-
-        <div className="flex justify-center gap-4 mb-8 flex-wrap">
-          {availableTabs.map(tab => (
-            <TabButton key={tab} tab={tab} />
-          ))}
+    <div className="min-h-screen bg-gradient-to-br from-orange-50 to-orange-100 py-6 px-3 sm:px-4">
+      <div className="max-w-7xl mx-auto">
+        {/* Header */}
+        <div className="bg-white rounded-xl shadow-lg p-4 sm:p-6 mb-6">
+          <h1 className="text-2xl sm:text-3xl font-bold text-center text-orange-600 mb-4">{t('reports.title')}</h1>
+          
+          {/* Tab Navigation */}
+          <div className="flex justify-center gap-2 sm:gap-4 flex-wrap">
+            {availableTabs.map(tab => (
+              <TabButton key={tab} tab={tab} />
+            ))}
+          </div>
         </div>
 
-        <div className="min-h-[500px]">
-          {loadingTab ? (
-            <FullPageLoader message={t('reports.loading')} />
-          ) : (
-            <>
-              {activeTab === "block" && <BlockReportPage />}
-              {activeTab === "district" && <DistrictReportPage />}
-              {activeTab === "vidhansabha" && (
-                <div className="text-center py-20">
-                  <div className="bg-gradient-to-r from-yellow-50 to-orange-50 p-8 rounded-xl border border-yellow-200">
-                    <div className="text-6xl mb-4">🚧</div>
-                    <h3 className="text-xl font-semibold text-gray-700 mb-2">{t('reports.vidhansabha')}</h3>
-                    <p className="text-gray-500">{t('reports.vidhansabhaDesc')}</p>
+        {/* Content Area */}
+        <div className="bg-white rounded-xl shadow-lg p-4 sm:p-6">
+
+          <div className="min-h-[500px]">
+            {loadingTab ? (
+              <FullPageLoader message={t('reports.loading')} />
+            ) : (
+              <>
+                {activeTab === "block" && <BlockReportPage />}
+                {activeTab === "district" && <DistrictReportPage />}
+                {activeTab === "vidhansabha" && (
+                  <div className="text-center py-12 sm:py-20">
+                    <div className="bg-gradient-to-r from-yellow-50 to-orange-50 p-6 sm:p-8 rounded-xl border border-yellow-200 max-w-md mx-auto">
+                      <div className="text-4xl sm:text-6xl mb-4">🚧</div>
+                      <h3 className="text-lg sm:text-xl font-semibold text-gray-700 mb-2">{t('reports.vidhansabha')}</h3>
+                      <p className="text-sm sm:text-base text-gray-500">{t('reports.vidhansabhaDesc')}</p>
+                    </div>
                   </div>
-                </div>
-              )}
-              {activeTab === "loksabha" && (
-                <div className="text-center py-20">
-                  <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-8 rounded-xl border border-blue-200">
-                    <div className="text-6xl mb-4">🚧</div>
-                    <h3 className="text-xl font-semibold text-gray-700 mb-2">{t('reports.loksabha')}</h3>
-                    <p className="text-gray-500">{t('reports.loksabhaDesc')}</p>
+                )}
+                {activeTab === "loksabha" && (
+                  <div className="text-center py-12 sm:py-20">
+                    <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-6 sm:p-8 rounded-xl border border-blue-200 max-w-md mx-auto">
+                      <div className="text-4xl sm:text-6xl mb-4">🚧</div>
+                      <h3 className="text-lg sm:text-xl font-semibold text-gray-700 mb-2">{t('reports.loksabha')}</h3>
+                      <p className="text-sm sm:text-base text-gray-500">{t('reports.loksabhaDesc')}</p>
+                    </div>
                   </div>
-                </div>
-              )}
-            </>
-          )}
+                )}
+              </>
+            )}
+          </div>
         </div>
       </div>
     </div>
