@@ -462,8 +462,10 @@ interface BoothDetailsProps {
 function BoothDetails({ assemblyId, assemblyName, onBack }: BoothDetailsProps) {
   const { t } = useTranslation();
   const [booths, setBooths] = useState<Booth[]>([]);
+  const [filteredBooths, setFilteredBooths] = useState<Booth[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string>('');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'verified' | 'unverified' | 'null'>('all');
 
   // The state that tracks *which* booth is currently saving
   const [savingBoothId, setSavingBoothId] = useState<number | null>(null);
@@ -472,13 +474,17 @@ function BoothDetails({ assemblyId, assemblyName, onBack }: BoothDetailsProps) {
   const getBlaStatus = (isBla2: string) => {
     switch (isBla2) {
       case 'VALUE_0':
-        return { label: 'Not Sure', color: 'bg-gray-100 text-gray-800' };
+        return { label: 'Dummy Account', color: 'bg-gray-100 text-gray-800' };
       case 'VALUE_1':
-        return { label: 'Sure', color: 'bg-green-100 text-green-800' };
+        return { label: 'Unverified', color: 'bg-green-100 text-green-800' };
       case 'VALUE_2':
-        return { label: 'Dummy Account', color: 'bg-red-100 text-red-800' };
+        return { label: 'Verified', color: 'bg-red-100 text-red-800' };
+      case null:
+      case undefined:
+      case '':
+        return { label: 'null', color: 'bg-gray-200 text-gray-500 italic' };
       default:
-        return { label: 'Unknown', color: 'bg-gray-100 text-gray-800' };
+        return { label: 'null', color: 'bg-gray-200 text-gray-500 italic' };
     }
   };
 
@@ -492,6 +498,7 @@ function BoothDetails({ assemblyId, assemblyName, onBack }: BoothDetailsProps) {
       
       if (response.data && response.data.data) {
         setBooths(response.data.data);
+        setFilteredBooths(response.data.data);
       }
       return () => controller.abort();
     } catch (err: any) {
@@ -508,7 +515,7 @@ function BoothDetails({ assemblyId, assemblyName, onBack }: BoothDetailsProps) {
   }, [fetchBooths]);
 
   // Handler passed down to BoothRowOrCard for saving data
-  const handleSaveBooth = async (boothId: number, data: { bla2_name: string, bla2_mobile_no: string, slr_per: string }) => {
+  const handleSaveBooth = async (boothId: number, data: { bla2_name: string, bla2_mobile_no: string, slr_per: string, isBla2?: string }) => {
     setSavingBoothId(boothId);
     try {
       await axiosInstance.put(`/districts/update-booth/${boothId}`, data);
@@ -519,6 +526,7 @@ function BoothDetails({ assemblyId, assemblyName, onBack }: BoothDetailsProps) {
       // For simplicity, we'll refetch the list as in the original code, but
       // a targeted state update is the best practice for performance.
       await fetchBooths(); 
+      applyFilter(statusFilter);
 
       return { success: true, message: 'Update successful' };
     } catch (err: any) {
@@ -528,6 +536,38 @@ function BoothDetails({ assemblyId, assemblyName, onBack }: BoothDetailsProps) {
     } finally {
       setSavingBoothId(null);
     }
+  };
+
+  const applyFilter = (filter: 'all' | 'verified' | 'unverified' | 'null') => {
+    let filtered = [...booths];
+    
+    switch (filter) {
+      case 'verified':
+        filtered = booths.filter(booth => booth.isBla2 === 'VALUE_2');
+        break;
+      case 'unverified':
+        filtered = booths.filter(booth => booth.isBla2 === 'VALUE_1' || booth.isBla2 === 'VALUE_0');
+        break;
+      case 'null':
+        filtered = booths.filter(booth => 
+          !booth.bla2_name || 
+          booth.bla2_name.trim() === '' || 
+          !booth.bla2_mobile_no || 
+          booth.bla2_mobile_no.trim() === '' ||
+          !booth.slr_per ||
+          booth.slr_per.trim() === ''
+        );
+        break;
+      default:
+        filtered = booths;
+    }
+    
+    setFilteredBooths(filtered);
+  };
+
+  const handleStatusFilter = (filter: 'all' | 'verified' | 'unverified' | 'null') => {
+    setStatusFilter(filter);
+    applyFilter(filter);
   };
 
   if (loading) {
@@ -583,33 +623,110 @@ function BoothDetails({ assemblyId, assemblyName, onBack }: BoothDetailsProps) {
             </div>
             <div>
               <h3 className="text-lg font-semibold text-gray-900">{assemblyName}</h3>
-              <p className="text-sm text-gray-600">{booths.length} {t('booth.booths')} available</p>
+              <p className="text-sm text-gray-600">{filteredBooths.length} of {booths.length} {t('booth.booths')} shown</p>
             </div>
           </div>
           <div className="text-right">
-            <div className="text-2xl font-bold text-orange-600">{booths.length}</div>
-            <div className="text-xs text-gray-500">Total Booths</div>
+            <div className="text-2xl font-bold text-orange-600">{filteredBooths.length}</div>
+            <div className="text-xs text-gray-500">Filtered</div>
           </div>
+        </div>
+      </div>
+
+      {/* Filter Section */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 mb-6">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.414A1 1 0 013 6.707V4z" />
+            </svg>
+            <h4 className="text-sm font-semibold text-gray-800">Filter Booths</h4>
+          </div>
+          {statusFilter !== 'all' && (
+            <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full font-medium">
+              {statusFilter === 'verified' ? 'Verified Only' : 
+               statusFilter === 'unverified' ? 'Unverified Only' : 'Incomplete Data'}
+            </span>
+          )}
+        </div>
+        
+        <div className="flex flex-wrap gap-2">
+          <button
+            onClick={() => handleStatusFilter('all')}
+            className={`px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+              statusFilter === 'all'
+                ? 'bg-gray-800 text-white shadow-md'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}
+          >
+            All ({booths.length})
+          </button>
+          <button
+            onClick={() => handleStatusFilter('verified')}
+            className={`px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+              statusFilter === 'verified'
+                ? 'bg-green-600 text-white shadow-md'
+                : 'bg-green-100 text-green-700 hover:bg-green-200'
+            }`}
+          >
+            Verified ({booths.filter(b => b.isBla2 === 'VALUE_2').length})
+          </button>
+          <button
+            onClick={() => handleStatusFilter('unverified')}
+            className={`px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+              statusFilter === 'unverified'
+                ? 'bg-yellow-600 text-white shadow-md'
+                : 'bg-yellow-100 text-yellow-700 hover:bg-yellow-200'
+            }`}
+          >
+            Unverified (inc. Dummy) ({booths.filter(b => b.isBla2 === 'VALUE_1' || b.isBla2 === 'VALUE_0').length})
+          </button>
+          <button
+            onClick={() => handleStatusFilter('null')}
+            className={`px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+              statusFilter === 'null'
+                ? 'bg-red-600 text-white shadow-md'
+                : 'bg-red-100 text-red-700 hover:bg-red-200'
+            }`}
+          >
+            Incomplete ({booths.filter(b => 
+              !b.bla2_name || b.bla2_name.trim() === '' || 
+              !b.bla2_mobile_no || b.bla2_mobile_no.trim() === '' ||
+              !b.slr_per || b.slr_per.trim() === ''
+            ).length})
+          </button>
         </div>
       </div>
 
       {booths.length > 0 ? (
         <>
-          {/* Mobile Grid */}
-          <div className="block sm:hidden">
-            <div className="grid gap-3">
-              {booths.map((booth) => (
-                <BoothRowOrCard 
-                  key={booth.id} 
-                  booth={booth} 
-                  isMobile={true}
-                  getBlaStatus={getBlaStatus}
-                  onSave={handleSaveBooth}
-                  isSaving={savingBoothId === booth.id}
-                />
-              ))}
+          {filteredBooths.length === 0 ? (
+            <div className="text-center py-8">
+              <div className="bg-gray-50 rounded-lg p-6">
+                <svg className="w-10 h-10 text-gray-400 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.172 16.172a4 4 0 015.656 0M9 12h6m-6-4h6m2 5.291A7.962 7.962 0 0112 15c-2.34 0-4.29-1.009-5.824-2.562M15 6.306a7.962 7.962 0 00-6 0m6 0V5a2 2 0 00-2-2H9a2 2 0 00-2 2v1.306" />
+                </svg>
+                <h3 className="text-sm font-medium text-gray-900 mb-1">No booths match the filter</h3>
+                <p className="text-xs text-gray-500">Try selecting a different filter option</p>
+              </div>
             </div>
-          </div>
+          ) : (
+            <>
+              {/* Mobile Grid */}
+              <div className="block sm:hidden">
+                <div className="grid gap-3">
+                  {filteredBooths.map((booth) => (
+                    <BoothRowOrCard 
+                      key={booth.id} 
+                      booth={booth} 
+                      isMobile={true}
+                      getBlaStatus={getBlaStatus}
+                      onSave={handleSaveBooth}
+                      isSaving={savingBoothId === booth.id}
+                    />
+                  ))}
+                </div>
+              </div>
 
           {/* Desktop Table */}
           <div className="hidden sm:block overflow-hidden rounded-lg border border-gray-200">
@@ -647,7 +764,7 @@ function BoothDetails({ assemblyId, assemblyName, onBack }: BoothDetailsProps) {
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {booths.map((booth) => (
+                  {filteredBooths.map((booth) => (
                     <BoothRowOrCard 
                       key={booth.id} 
                       booth={booth} 
@@ -660,7 +777,9 @@ function BoothDetails({ assemblyId, assemblyName, onBack }: BoothDetailsProps) {
                 </tbody>
               </table>
             </div>
-          </div>
+              </div>
+            </>
+          )}
         </>
       ) : (
         // ... No Booths Found (kept as is) ...

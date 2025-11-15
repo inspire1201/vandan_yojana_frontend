@@ -1,25 +1,42 @@
-import  { useState, useEffect } from 'react';
+
+
+
+import { useState, useEffect } from 'react';
 import axiosInstance from '../../service/axiosInstance';
 import { useTranslation } from 'react-i18next';
+
+// --- UPDATED INTERFACES (as above) ---
+interface BoothSummary {
+  totalBooths: number;
+  verifiedBooths: number; // isBla2 = 2
+  unverifiedBooths: number;  // isBla2 = 1
+  dummyBooths: number; // isBla2 = 0
+  TotalBLa: number; // bla2_name IS NOT NULL
+}
 
 interface Assembly {
   id: number;
   assembly_id: number;
   assembly_name: string;
   _count: {
-    booths: number;
+    booths: number; 
   };
+  boothSummary: BoothSummary; 
 }
 
 interface AssemblyListProps {
   onAssemblySelect: (assemblyId: number, assemblyName: string) => void;
 }
+// -------------------------------------
+
 
 function AssemblyList({ onAssemblySelect }: AssemblyListProps) {
   const { t } = useTranslation();
   const [assemblies, setAssemblies] = useState<Assembly[]>([]);
+  const [filteredAssemblies, setFilteredAssemblies] = useState<Assembly[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string>('');
+  const [sortOrder, setSortOrder] = useState<'max' | 'min' | 'none'>('none');
 
   useEffect(() => {
     fetchAssemblies();
@@ -28,9 +45,11 @@ function AssemblyList({ onAssemblySelect }: AssemblyListProps) {
   const fetchAssemblies = async () => {
     try {
       setLoading(true);
+      // NOTE: Ensure your axiosInstance call is pointed to the updated controller endpoint
       const response = await axiosInstance.get('/districts/get-all-assembly');
       if (response.data && response.data.data) {
         setAssemblies(response.data.data);
+        setFilteredAssemblies(response.data.data);
       }
     } catch (err) {
       setError(t('booth.failedAssemblies'));
@@ -38,6 +57,23 @@ function AssemblyList({ onAssemblySelect }: AssemblyListProps) {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleSort = (order: 'max' | 'min') => {
+    const sorted = [...assemblies].sort((a, b) => {
+      if (order === 'max') {
+        return b.boothSummary.TotalBLa - a.boothSummary.TotalBLa;
+      } else {
+        return a.boothSummary.TotalBLa - b.boothSummary.TotalBLa;
+      }
+    });
+    setFilteredAssemblies(sorted);
+    setSortOrder(order);
+  };
+
+  const resetSort = () => {
+    setFilteredAssemblies(assemblies);
+    setSortOrder('none');
   };
 
   if (loading) {
@@ -66,7 +102,67 @@ function AssemblyList({ onAssemblySelect }: AssemblyListProps) {
 
   return (
     <div className="p-4 sm:p-6">
-      {/* Stats Header */}
+      
+      {/* Enhanced Filter Section */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 mb-6">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.414A1 1 0 013 6.707V4z" />
+            </svg>
+            <h4 className="text-sm font-semibold text-gray-800">Sort & Filter</h4>
+          </div>
+          {sortOrder !== 'none' && (
+            <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full font-medium">
+              {sortOrder === 'max' ? 'Highest First' : 'Lowest First'}
+            </span>
+          )}
+        </div>
+        
+        <div className="flex flex-wrap gap-2">
+          <button
+            onClick={() => handleSort('max')}
+            className={`group flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 ${
+              sortOrder === 'max'
+                ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-md transform scale-105'
+                : 'bg-gray-50 text-gray-700 hover:bg-blue-50 hover:text-blue-700 hover:shadow-sm'
+            }`}
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 11l5-5m0 0l5 5m-5-5v12" />
+            </svg>
+            Highest BLa
+          </button>
+          
+          <button
+            onClick={() => handleSort('min')}
+            className={`group flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 ${
+              sortOrder === 'min'
+                ? 'bg-gradient-to-r from-green-500 to-green-600 text-white shadow-md transform scale-105'
+                : 'bg-gray-50 text-gray-700 hover:bg-green-50 hover:text-green-700 hover:shadow-sm'
+            }`}
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 13l-5 5m0 0l-5-5m5 5V6" />
+            </svg>
+            Lowest BLa
+          </button>
+          
+          {sortOrder !== 'none' && (
+            <button
+              onClick={resetSort}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium bg-gray-100 text-gray-600 hover:bg-gray-200 hover:text-gray-800 transition-all duration-200"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+              Reset
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Stats Header (Keeping the original structure but acknowledging the new data) */}
       <div className="bg-gradient-to-r from-orange-50 to-orange-100 rounded-lg p-4 mb-6">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -77,40 +173,62 @@ function AssemblyList({ onAssemblySelect }: AssemblyListProps) {
             </div>
             <div>
               <h3 className="text-lg font-semibold text-gray-900">{t('booth.allAssemblies')}</h3>
-              <p className="text-sm text-gray-600">{assemblies.length} {t('booth.assemblies')} available</p>
+              <p className="text-sm text-gray-600">{filteredAssemblies.length} {t('booth.assemblies')} available</p>
             </div>
           </div>
           <div className="text-right">
-            <div className="text-2xl font-bold text-orange-600">{assemblies.length}</div>
+            <div className="text-2xl font-bold text-orange-600">{filteredAssemblies.length}</div>
             <div className="text-xs text-gray-500">Total</div>
           </div>
         </div>
       </div>
 
-      {/* Assembly Grid for Mobile, Table for Desktop */}
+      {/* Assembly Grid for Mobile - UPDATED */}
       <div className="block sm:hidden">
         <div className="grid gap-4">
-          {assemblies.map((assembly) => (
+          {filteredAssemblies.map((assembly) => (
             <div key={assembly.id} className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
               <div className="flex justify-between items-start mb-3">
                 <div className="flex-1">
                   <h4 className="font-semibold text-gray-900 text-sm">{assembly.assembly_name}</h4>
-                  <p className="text-xs text-gray-500 mt-1">
-                    <span className="inline-flex items-center gap-1">
-                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                      </svg>
-                      {assembly._count.booths} booths
-                    </span>
-                  </p>
                 </div>
                 <span className="bg-orange-100 text-orange-800 text-xs font-medium px-2 py-1 rounded-full">
-                  {assembly._count.booths}
+                  {assembly.boothSummary.totalBooths} {t('booth.booths')}
                 </span>
               </div>
+              
+              {/* NEW: Mobile Summary Details */}
+              <div className="grid grid-cols-2 gap-3 text-xs mb-4 border-t pt-3">
+                <div className="bg-green-50 p-2 rounded-lg">
+                  <div className="text-green-700 font-medium text-xs mb-1">Verified</div>
+                  <div className="text-green-800 font-bold text-sm">{assembly.boothSummary.verifiedBooths}</div>
+                </div>
+                <div className="bg-blue-50 p-2 rounded-lg">
+                  <div className="text-blue-700 font-medium text-xs mb-1">Total BLa</div>
+                  <div className="text-blue-800 font-bold text-sm">{assembly.boothSummary.TotalBLa}</div>
+                </div>
+                <div className="bg-yellow-50 p-2 rounded-lg">
+                  <div className="text-yellow-700 font-medium text-xs mb-1">Unverified (inc. Dummy)</div>
+                  <div className="text-yellow-800 font-bold text-sm">{assembly.boothSummary.unverifiedBooths + assembly.boothSummary.dummyBooths}</div>
+                </div>
+                <div className="bg-purple-50 p-2 rounded-lg">
+                  <div className="text-purple-700 font-medium text-xs mb-1">BLa %</div>
+                  <div className="text-purple-800 font-bold text-sm">
+                    {assembly.boothSummary.totalBooths > 0 
+                      ? ((assembly.boothSummary.TotalBLa / assembly.boothSummary.totalBooths) * 100).toFixed(1)
+                      : '0.0'
+                    }%
+                  </div>
+                </div>
+                <div className="bg-gray-50 p-2 rounded-lg">
+                  <div className="text-gray-700 font-medium text-xs mb-1">Not Created</div>
+                  <div className="text-gray-800 font-bold text-sm">{assembly.boothSummary.totalBooths - assembly.boothSummary.TotalBLa}</div>
+                </div>
+              </div>
+              
               <button
                 onClick={() => onAssemblySelect(assembly.assembly_id, assembly.assembly_name)}
-                className="w-full bg-orange-500 hover:bg-orange-600 text-white px-3 py-2 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2"
+                className="w-full bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white px-4 py-3 rounded-lg text-sm font-medium transition-all duration-200 flex items-center justify-center gap-2 shadow-md hover:shadow-lg transform hover:scale-105"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -123,7 +241,7 @@ function AssemblyList({ onAssemblySelect }: AssemblyListProps) {
         </div>
       </div>
 
-      {/* Desktop Table */}
+      {/* Desktop Table - UPDATED */}
       <div className="hidden sm:block overflow-hidden rounded-lg border border-gray-200">
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
@@ -132,8 +250,20 @@ function AssemblyList({ onAssemblySelect }: AssemblyListProps) {
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   {t('booth.assemblyName')}
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                   {t('booth.boothCount')}
+                </th>
+                <th className="px-3 py-3 text-center text-xs font-medium text-green-700 uppercase tracking-wider bg-green-50">
+                  Verified
+                </th>
+                <th className="px-3 py-3 text-center text-xs font-medium text-yellow-700 uppercase tracking-wider bg-yellow-50">
+                  Unverified (inc. Dummy)
+                </th>
+                <th className="px-3 py-3 text-center text-xs font-medium text-blue-700 uppercase tracking-wider bg-blue-50">
+                  Total BLa
+                </th>
+                <th className="px-3 py-3 text-center text-xs font-medium text-purple-700 uppercase tracking-wider bg-purple-50">
+                  BLa %
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   {t('booth.action')}
@@ -141,7 +271,7 @@ function AssemblyList({ onAssemblySelect }: AssemblyListProps) {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {assemblies.map((assembly) => (
+              {filteredAssemblies.map((assembly) => (
                 <tr key={assembly.id} className="hover:bg-gray-50 transition-colors">
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center">
@@ -155,15 +285,33 @@ function AssemblyList({ onAssemblySelect }: AssemblyListProps) {
                       </div>
                     </div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
+                  <td className="px-6 py-4 whitespace-nowrap text-center">
                     <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
-                      {assembly._count.booths} booths
+                      {assembly.boothSummary.totalBooths}
                     </span>
                   </td>
+                  
+                  {/* NEW SUMMARY COLUMNS */}
+                  <td className="px-3 py-4 whitespace-nowrap text-center text-sm font-medium text-green-600 bg-green-50/50">
+                    {assembly.boothSummary.verifiedBooths}
+                  </td>
+                  <td className="px-3 py-4 whitespace-nowrap text-center text-sm font-medium text-yellow-600 bg-yellow-50/50">
+                    {assembly.boothSummary.unverifiedBooths + assembly.boothSummary.dummyBooths}
+                  </td>
+                  <td className="px-3 py-4 whitespace-nowrap text-center text-sm font-medium text-blue-600 bg-blue-50/50">
+                    {assembly.boothSummary.TotalBLa}
+                  </td>
+                  <td className="px-3 py-4 whitespace-nowrap text-center text-sm font-medium text-purple-600 bg-purple-50/50">
+                    {assembly.boothSummary.totalBooths > 0 
+                      ? ((assembly.boothSummary.TotalBLa / assembly.boothSummary.totalBooths) * 100).toFixed(1)
+                      : '0.0'
+                    }%
+                  </td>
+                  
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                     <button
                       onClick={() => onAssemblySelect(assembly.assembly_id, assembly.assembly_name)}
-                      className="bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
+                      className="bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white px-4 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 flex items-center gap-2 shadow-md hover:shadow-lg transform hover:scale-105"
                     >
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />

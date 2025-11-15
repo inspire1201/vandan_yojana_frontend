@@ -20,13 +20,15 @@ import UnifiedMapPage from './Components/Maps/UnifiedMapPage';
 
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
-  const { isAuthenticated } = useAppSelector((state) => state.auth);
+  const { isAuthenticated, isLoading } = useAppSelector((state) => state.auth);
+  if (isLoading) return <div>Loading...</div>;
   return isAuthenticated ? <>{children}</> : <Navigate to="/login" replace />;
 };
 
 const PublicRoute = ({ children }: { children: React.ReactNode }) => {
-  const { isAuthenticated } = useAppSelector((state) => state.auth);
-  return !isAuthenticated ? <>{children}</> : <Navigate to="/reports" replace />;
+  const { isAuthenticated, isLoading } = useAppSelector((state) => state.auth);
+  if (isLoading) return <div>Loading...</div>;
+  return !isAuthenticated ? <>{children}</> : <Navigate to="/" replace />;
 };
 
 function AppContent() {

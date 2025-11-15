@@ -14,6 +14,7 @@ interface AuthState {
   token: string | null;
   isAuthenticated: boolean;
   selectedReport: string | null;
+  isLoading: boolean;
 }
 
 const initialState: AuthState = {
@@ -21,6 +22,7 @@ const initialState: AuthState = {
   token: null,
   isAuthenticated: false,
   selectedReport: null,
+  isLoading: true,
 };
 
 const authSlice = createSlice({
@@ -57,6 +59,7 @@ const authSlice = createSlice({
         state.isAuthenticated = true;
         state.selectedReport = selectedReport;
       }
+      state.isLoading = false;
     },
     setTempSelectedReport: (state, action: PayloadAction<string>) => {
       state.selectedReport = action.payload;

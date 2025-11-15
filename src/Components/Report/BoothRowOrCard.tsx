@@ -24,21 +24,22 @@ interface BoothRowOrCardProps {
   booth: Booth;
   isMobile: boolean;
   getBlaStatus: (isBla2: string) => BlaStatus;
-  onSave: (boothId: number, data: { bla2_name: string, bla2_mobile_no: string, slr_per: string }) => Promise<{ success: boolean, message: string }>;
+  onSave: (boothId: number, data: { bla2_name: string, bla2_mobile_no: string, slr_per: string, isBla2?: string }) => Promise<{ success: boolean, message: string }>;
   isSaving: boolean;
 }
 
 function BoothRowOrCard({ booth, isMobile, getBlaStatus, onSave, isSaving }: BoothRowOrCardProps) {
   const [isEditing, setIsEditing] = useState(false);
-  const [localEditData, setLocalEditData] = useState<{bla2_name: string, bla2_mobile_no: string, slr_per: string}>({
-    bla2_name: booth.bla2_name,
-    bla2_mobile_no: booth.bla2_mobile_no,
-    slr_per: booth.slr_per
+  const [localEditData, setLocalEditData] = useState<{bla2_name: string, bla2_mobile_no: string, slr_per: string, isBla2: string}>({
+    bla2_name: booth.bla2_name || '',
+    bla2_mobile_no: booth.bla2_mobile_no || '',
+    slr_per: booth.slr_per || '',
+    isBla2: booth.isBla2 || ''
   });
-  const [errors, setErrors] = useState<{bla2_name?: string, bla2_mobile_no?: string, slr_per?: string}>({});
+  const [errors, setErrors] = useState<{bla2_name?: string, bla2_mobile_no?: string, slr_per?: string, isBla2?: string}>({});
 
   const validateFields = () => {
-    const newErrors: {bla2_name?: string, bla2_mobile_no?: string, slr_per?: string} = {};
+    const newErrors: {bla2_name?: string, bla2_mobile_no?: string, slr_per?: string, isBla2?: string} = {};
     
     if (!localEditData.bla2_name.trim()) {
       newErrors.bla2_name = 'Name is required';
@@ -56,6 +57,10 @@ function BoothRowOrCard({ booth, isMobile, getBlaStatus, onSave, isSaving }: Boo
       newErrors.slr_per = 'Percentage must be between 0-100';
     }
     
+    if (!booth.isBla2 && !localEditData.isBla2) {
+      newErrors.isBla2 = 'Status is required for null booths';
+    }
+    
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -63,14 +68,16 @@ function BoothRowOrCard({ booth, isMobile, getBlaStatus, onSave, isSaving }: Boo
   const hasChanges = () => {
     return localEditData.bla2_name !== booth.bla2_name ||
            localEditData.bla2_mobile_no !== booth.bla2_mobile_no ||
-           localEditData.slr_per !== booth.slr_per;
+           localEditData.slr_per !== booth.slr_per ||
+           localEditData.isBla2 !== booth.isBla2;
   };
 
   const handleEdit = () => {
     setLocalEditData({
-      bla2_name: booth.bla2_name,
-      bla2_mobile_no: booth.bla2_mobile_no,
-      slr_per: booth.slr_per
+      bla2_name: booth.bla2_name || '',
+      bla2_mobile_no: booth.bla2_mobile_no || '',
+      slr_per: booth.slr_per || '',
+      isBla2: booth.isBla2 || ''
     });
     setErrors({});
     setIsEditing(true);
@@ -91,6 +98,15 @@ function BoothRowOrCard({ booth, isMobile, getBlaStatus, onSave, isSaving }: Boo
     
     const result = await onSave(booth.id, localEditData);
     if (result.success) {
+      // Update booth data locally to reflect changes immediately
+      Object.assign(booth, {
+        bla2_name: localEditData.bla2_name || null,
+        bla2_mobile_no: localEditData.bla2_mobile_no || null,
+        slr_per: localEditData.slr_per || null,
+        isBla2: localEditData.isBla2 || null,
+        update_date: new Date().toISOString(),
+        update_count: (booth.update_count || 0) + 1
+      });
       setIsEditing(false);
       setErrors({});
     }
@@ -176,15 +192,37 @@ function BoothRowOrCard({ booth, isMobile, getBlaStatus, onSave, isSaving }: Boo
                 {errors.bla2_name && <span className="text-red-500 text-xs mt-1">{errors.bla2_name}</span>}
               </>
             ) : (
-              <span className="font-medium">{booth.bla2_name}</span>
+              booth.bla2_name ? (
+                <span className="font-medium">{booth.bla2_name}</span>
+              ) : (
+                <span className="text-gray-400 italic">null</span>
+              )
             )}
           </div>
         </div>
-        <div className="flex justify-between">
+        <div className="flex justify-between items-start">
           <span className="text-gray-500">Status:</span>
-          <span className={`px-2 py-1 rounded-full text-xs font-medium ${getBlaStatus(booth.isBla2).color}`}>
-            {getBlaStatus(booth.isBla2).label}
-          </span>
+          <div className="flex flex-col items-end">
+            {isEditing ? (
+              <>
+                <select
+                  value={localEditData.isBla2}
+                  onChange={(e) => handleFieldChange('isBla2', e.target.value)}
+                  className={`text-xs border rounded px-2 py-1 ${errors.isBla2 ? 'border-red-500' : ''}`}
+                >
+                  <option value="">Select Status</option>
+                  <option value="VALUE_0">Dummy Account</option>
+                  <option value="VALUE_1">Unverified</option>
+                  <option value="VALUE_2">Verified</option>
+                </select>
+                {errors.isBla2 && <span className="text-red-500 text-xs mt-1">{errors.isBla2}</span>}
+              </>
+            ) : (
+              <span className={`px-2 py-1 rounded-full text-xs font-medium ${getBlaStatus(booth.isBla2).color}`}>
+                {getBlaStatus(booth.isBla2).label}
+              </span>
+            )}
+          </div>
         </div>
         <div className="flex justify-between items-start">
           <span className="text-gray-500">Mobile:</span>
@@ -201,7 +239,11 @@ function BoothRowOrCard({ booth, isMobile, getBlaStatus, onSave, isSaving }: Boo
                 {errors.bla2_mobile_no && <span className="text-red-500 text-xs mt-1">{errors.bla2_mobile_no}</span>}
               </>
             ) : (
-              <span className="font-medium">{booth.bla2_mobile_no}</span>
+              booth.bla2_mobile_no ? (
+                <span className="font-medium">{booth.bla2_mobile_no}</span>
+              ) : (
+                <span className="text-gray-400 italic">null</span>
+              )
             )}
           </div>
         </div>
@@ -221,13 +263,29 @@ function BoothRowOrCard({ booth, isMobile, getBlaStatus, onSave, isSaving }: Boo
                 {errors.slr_per && <span className="text-red-500 text-xs mt-1">{errors.slr_per}</span>}
               </>
             ) : (
-              <span className="font-medium text-green-600">{booth.slr_per}%</span>
+              booth.slr_per ? (
+                <span className="font-medium text-green-600">{booth.slr_per}%</span>
+              ) : (
+                <span className="text-gray-400 italic">null</span>
+              )
             )}
           </div>
         </div>
         <div className="flex justify-between">
           <span className="text-gray-500">Updates:</span>
-          <span className="font-medium">{booth.update_count}</span>
+          {booth.update_count !== null ? (
+            <span className="font-medium">{booth.update_count}</span>
+          ) : (
+            <span className="text-gray-400 italic">null</span>
+          )}
+        </div>
+        <div className="flex justify-between">
+          <span className="text-gray-500">Last Updated:</span>
+          {booth.update_date ? (
+            <span className="font-medium text-xs">{new Date(booth.update_date).toLocaleDateString()}</span>
+          ) : (
+            <span className="text-gray-400 italic">null</span>
+          )}
         </div>
       </div>
     </div>
@@ -260,13 +318,33 @@ function BoothRowOrCard({ booth, isMobile, getBlaStatus, onSave, isSaving }: Boo
             {errors.bla2_name && <div className="text-red-500 text-xs mt-1">{errors.bla2_name}</div>}
           </div>
         ) : (
-          <div className="text-sm text-gray-900">{booth.bla2_name}</div>
+          booth.bla2_name ? (
+            <div className="text-sm text-gray-900">{booth.bla2_name}</div>
+          ) : (
+            <div className="text-gray-400 italic text-sm">null</div>
+          )
         )}
       </td>
       <td className="px-6 py-4 whitespace-nowrap">
-        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getBlaStatus(booth.isBla2).color}`}>
-          {getBlaStatus(booth.isBla2).label}
-        </span>
+        {isEditing ? (
+          <div>
+            <select
+              value={localEditData.isBla2}
+              onChange={(e) => handleFieldChange('isBla2', e.target.value)}
+              className={`text-sm border rounded px-2 py-1 ${errors.isBla2 ? 'border-red-500' : ''}`}
+            >
+              <option value="">Select Status</option>
+              <option value="VALUE_0">Dummy Account</option>
+              <option value="VALUE_1">Unverified</option>
+              <option value="VALUE_2">Verified</option>
+            </select>
+            {errors.isBla2 && <div className="text-red-500 text-xs mt-1">{errors.isBla2}</div>}
+          </div>
+        ) : (
+          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getBlaStatus(booth.isBla2).color}`}>
+            {getBlaStatus(booth.isBla2).label}
+          </span>
+        )}
       </td>
       <td className="px-6 py-4 whitespace-nowrap">
         {isEditing ? (
@@ -281,7 +359,11 @@ function BoothRowOrCard({ booth, isMobile, getBlaStatus, onSave, isSaving }: Boo
             {errors.bla2_mobile_no && <div className="text-red-500 text-xs mt-1">{errors.bla2_mobile_no}</div>}
           </div>
         ) : (
-          <div className="text-sm text-gray-900">{booth.bla2_mobile_no}</div>
+          booth.bla2_mobile_no ? (
+            <div className="text-sm text-gray-900">{booth.bla2_mobile_no}</div>
+          ) : (
+            <div className="text-gray-400 italic text-sm">null</div>
+          )
         )}
       </td>
       <td className="px-6 py-4 whitespace-nowrap">
@@ -298,18 +380,30 @@ function BoothRowOrCard({ booth, isMobile, getBlaStatus, onSave, isSaving }: Boo
             {errors.slr_per && <div className="text-red-500 text-xs mt-1">{errors.slr_per}</div>}
           </div>
         ) : (
-          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-            {booth.slr_per}%
-          </span>
+          booth.slr_per ? (
+            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+              {booth.slr_per}%
+            </span>
+          ) : (
+            <span className="text-gray-400 italic text-sm">null</span>
+          )
         )}
       </td>
       <td className="px-6 py-4 whitespace-nowrap">
-        <div className="text-sm text-gray-900">{booth.update_count}</div>
+        {booth.update_count !== null ? (
+          <div className="text-sm text-gray-900">{booth.update_count}</div>
+        ) : (
+          <div className="text-gray-400 italic text-sm">null</div>
+        )}
       </td>
       <td className="px-6 py-4 whitespace-nowrap">
-        <div className="text-sm text-gray-500">
-          {new Date(booth.update_date).toLocaleDateString()}
-        </div>
+        {booth.update_date ? (
+          <div className="text-sm text-gray-500">
+            {new Date(booth.update_date).toLocaleDateString()}
+          </div>
+        ) : (
+          <div className="text-gray-400 italic text-sm">null</div>
+        )}
       </td>
       <td className="px-6 py-4 whitespace-nowrap">
         {isEditing ? (
