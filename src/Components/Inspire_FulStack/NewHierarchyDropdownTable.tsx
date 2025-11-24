@@ -1380,7 +1380,7 @@ const NewHierarchyDropdownTable: React.FC = () => {
                         </div>
 
                         {/* Tree Container */}
-                        <div className="border rounded-xl overflow-y-auto h-[400px] custom-scrollbar bg-gray-50/30 p-2">
+                        <div className="border rounded-xl overflow-y-auto custom-scrollbar bg-gray-50/30 p-2">
                             {loading && treeData.length === 0 ? (
                                 <div className="flex items-center justify-center h-full"><Spinner /></div>
                             ) : (

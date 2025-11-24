@@ -11,6 +11,7 @@ import BoothSummary from './Components/Report/BoothSummary';
 import Login from './Components/auth/Login';
 import RegisterUser from './Components/auth/RegisterUser';
 import AllUsers from './Components/auth/AllUsers';
+import AdminDashboard from './Components/Admin/AdminDashboard';
 import './i18n';
 // import DistrictWrapper from './wrapper/DistrictWrapper';
 // import AssemblyWrapper from './wrapper/AssemblyWrapper';
@@ -25,6 +26,18 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { isAuthenticated, isLoading } = useAppSelector((state) => state.auth);
   if (isLoading) return <div>Loading...</div>;
   return isAuthenticated ? <>{children}</> : <Navigate to="/login" replace />;
+};
+
+const AdminRoute = ({ children }: { children: React.ReactNode }) => {
+  const { isAuthenticated, isLoading, user } = useAppSelector((state) => state.auth);
+  if (isLoading) return <div>Loading...</div>;
+  if (!isAuthenticated) return <Navigate to="/login" replace />;
+  return user?.role === 'ADMIN' ? <>{children}</> : <Navigate to="/" replace />;
+};
+
+const HomePage = () => {
+  const { user } = useAppSelector((state) => state.auth);
+  return user?.role === 'ADMIN' ? <AdminDashboard /> : <ReportsDashboard />;
 };
 
 const PublicRoute = ({ children }: { children: React.ReactNode }) => {
@@ -47,7 +60,7 @@ function AppContent() {
     <>
       <Navbar />
       <Routes>
-        <Route path="/" element={<ProtectedRoute><ReportsDashboard /></ProtectedRoute>} />
+        <Route path="/" element={<ProtectedRoute><HomePage /></ProtectedRoute>} />
       
         <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
         <Route path="/maps" element={<ProtectedRoute><UnifiedMapPage/></ProtectedRoute>} />
@@ -58,12 +71,12 @@ function AppContent() {
         <Route path="/reports" element={<ProtectedRoute><ReportsDashboard /></ProtectedRoute>} />
         <Route path="/booth-summary" element={<ProtectedRoute><BoothSummary /></ProtectedRoute>} />
    
-        <Route path="/register" element={<ProtectedRoute><RegisterUser /></ProtectedRoute>} />
-        <Route path="/users" element={<ProtectedRoute><AllUsers /></ProtectedRoute>} />
+        <Route path="/register" element={<AdminRoute><RegisterUser /></AdminRoute>} />
+        <Route path="/users" element={<AdminRoute><AllUsers /></AdminRoute>} />
       </Routes>
     </>
   );
-}
+} 
 
 function App() {
   return (

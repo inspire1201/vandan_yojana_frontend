@@ -14,16 +14,16 @@ jobs:
       - name: Login to docker hub
         run: docker login -u ${{ secrets.DOCKER_USERNAME }} -p ${{ secrets.DOCKER_PASSWORD }}     
       - name: Build Docker Image
-        run: docker build -t proplerer19/vandan_frontend --build-arg REACT_APP_NODE_ENV='production' --build-arg REACT_APP_SERVER_BASE_URL='${{ secrets.REACT_APP_SERVER_BASE_URL }}'  .
+        run: docker build -t inspire2002/vandan_frontend --build-arg REACT_APP_NODE_ENV='production' --build-arg REACT_APP_SERVER_BASE_URL='${{ secrets.REACT_APP_SERVER_BASE_URL }}'  .
       - name: Publish Image to docker hub
-        run: docker push proplerer19/vandan_frontend:latest 
+        run: docker push inspire2002/vandan_frontend:latest 
  
   deploy:
     needs: build
     runs-on: self-hosted 
     steps:
       - name: Pull image from docker hub
-        run: docker pull proplerer19/vandan_frontend:latest 
+        run: docker pull inspire2002/vandan_frontend:latest 
       - name: Delete old container
         run: docker rm -f vandan_frontend_app
       - name: Run Docker Container
@@ -32,4 +32,4 @@ jobs:
            -p 4000:80 \
            --name vandan_frontend_app \
            -e VITE_API_BASE_URL=http://44.197.21.241:8080 \
-           proplerer19/vandan_frontend:latest
+           inspire2002/vandan_frontend:latest

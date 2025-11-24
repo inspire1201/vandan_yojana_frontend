@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import Logo from "../assets/bjp_logo.png";
 import HeaderImage from "../assets/mahatari_header.jpg";
-import { Mail, Phone, Globe, ChevronDown, Menu, X, User, LogOut, UserPlus, Users,  LayoutDashboard } from "lucide-react";
+import { Mail, Phone, Globe, ChevronDown, Menu, X, User, LogOut, UserPlus, Users, } from "lucide-react";
 import { useAppSelector, useAppDispatch } from "../store/hooks";
 import { logout } from "../store/authSlice";
 import { toast } from "react-hot-toast";
@@ -28,10 +28,7 @@ const Navbar: React.FC = () => {
     navigate('/login');
   };
 
-  const navItems = [
-    ...(user?.role === 'ADMIN' ? [{ path: '/dashboard', label: "Dashboard", icon: LayoutDashboard, color: 'bg-white text-orange-500 hover:bg-orange-50 border border-orange-200' }] : []),
-    ...(user?.role === 'ADMIN' ? [{ path: '/show-count', label: "Show Count", icon: LayoutDashboard, color: 'bg-white text-orange-500 hover:bg-orange-50 border border-orange-200' }] : []),
-  ];
+
 
   return (
     <>
@@ -48,7 +45,7 @@ const Navbar: React.FC = () => {
               <span>हेल्प डेस्क: +91-771-2220006</span>
             </div>
           </div>
-          
+
           <div className="relative">
             <button
               onClick={() => setIsLangOpen(!isLangOpen)}
@@ -58,7 +55,7 @@ const Navbar: React.FC = () => {
               <span className="text-xs">{language}</span>
               <ChevronDown className={`w-3 h-3 transition-transform ${isLangOpen ? 'rotate-180' : ''}`} />
             </button>
-            
+
             {isLangOpen && (
               <div className="absolute right-0 mt-1 w-24 bg-white rounded-lg shadow-lg border z-50">
                 <button
@@ -97,19 +94,7 @@ const Navbar: React.FC = () => {
               {/* Desktop Navigation */}
               {isAuthenticated && (
                 <div className="hidden md:flex items-center gap-1">
-                  {navItems.map((item) => {
-                    const Icon = item.icon;
-                    return (
-                      <button
-                        key={item.path}
-                        onClick={() => navigate(item.path)}
-                        className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all font-medium shadow-md ${item.color}`}
-                      >
-                        <Icon className="w-4 h-4" />
-                        <span>{item.label}</span>
-                      </button>
-                    );
-                  })}
+
                 </div>
               )}
               {/* Mobile Menu Button */}
@@ -131,7 +116,7 @@ const Navbar: React.FC = () => {
                     <span className="hidden sm:inline">{user?.name}</span>
                     <ChevronDown className={`w-3 h-3 transition-transform ${isUserMenuOpen ? 'rotate-180' : ''}`} />
                   </button>
-                  
+
                   {isUserMenuOpen && (
                     <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border z-50">
                       <div className="px-4 py-3 border-b">
@@ -139,7 +124,7 @@ const Navbar: React.FC = () => {
                         <p className="text-sm text-gray-500">Code: {user?.code}</p>
                         <p className="text-xs text-gray-400">{user?.role}</p>
                       </div>
-                      
+
                       {user?.role === 'ADMIN' && (
                         <div className="py-1">
                           <button
@@ -158,7 +143,7 @@ const Navbar: React.FC = () => {
                           </button>
                         </div>
                       )}
-                      
+
                       <div className="py-1 border-t">
                         <button
                           onClick={handleLogout}
@@ -186,19 +171,7 @@ const Navbar: React.FC = () => {
           {isMobileMenuOpen && isAuthenticated && (
             <div className="md:hidden border-t border-orange-400 bg-orange-400 py-3">
               <div className="flex flex-col gap-1">
-                {navItems.map((item) => {
-                  const Icon = item.icon;
-                  return (
-                    <button
-                      key={item.path}
-                      onClick={() => { navigate(item.path); setIsMobileMenuOpen(false); }}
-                      className={`flex items-center gap-3 px-4 py-3 transition-all rounded-lg mx-2 ${item.color}`}
-                    >
-                      <Icon className="w-5 h-5" />
-                      <span className="font-medium">{item.label}</span>
-                    </button>
-                  );
-                })}
+
               </div>
             </div>
           )}
