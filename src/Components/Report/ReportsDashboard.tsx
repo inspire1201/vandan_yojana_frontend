@@ -4,7 +4,9 @@ import { DistrictReportPage } from "./DistrictReportPage";
 import { FullPageLoader } from "./LoaderComponents";
 import { useSelector } from "react-redux";
 import { useTranslation } from "react-i18next";
-type Tab = "block" | "district" | "vidhansabha" | "loksabha";
+import UnifiedMapPage from "../Maps/UnifiedMapPage";
+import BoothSummary from "./BoothSummary";
+type Tab = "block" | "district" | "vidhansabha" | "loksabha"|"Maps"|"Booth Summary";
 
 
 
@@ -24,7 +26,7 @@ export default function ReportsDashboard() {
       case "LOKSABHA_USER":
         return ["block", "district", "vidhansabha", "loksabha"];
       case "ADMIN":
-        return ["block", "district", "vidhansabha", "loksabha"];
+        return ["block", "district", "vidhansabha", "loksabha","Booth Summary","Maps"];
       default:
         return ["block", "district"];
     }
@@ -61,7 +63,12 @@ export default function ReportsDashboard() {
             : "text-orange-600 hover:bg-orange-50 border border-orange-200"
         }`}
       >
-        {tab === 'block' ? t('reports.blockReport') : tab === 'district' ? t('reports.districtReport') : tab === 'vidhansabha' ? t('reports.vidhansabha') : t('reports.loksabha')}
+        {tab === 'block' ? t('reports.blockReport') : 
+         tab === 'district' ? t('reports.districtReport') : 
+         tab === 'vidhansabha' ? t('reports.vidhansabha') : 
+         tab === 'loksabha' ? t('reports.loksabha') : 
+         tab === 'Booth Summary' ? 'Booth Summary' : 
+         tab === 'Maps' ? 'Maps' : tab}
       </button>
     );
   };
@@ -91,6 +98,8 @@ export default function ReportsDashboard() {
               <>
                 {activeTab === "block" && <BlockReportPage />}
                 {activeTab === "district" && <DistrictReportPage />}
+                {activeTab === "Maps" && <UnifiedMapPage />}
+                {activeTab === "Booth Summary" && <BoothSummary />}
                 {activeTab === "vidhansabha" && (
                   <div className="text-center py-12 sm:py-20">
                     <div className="bg-gradient-to-r from-yellow-50 to-orange-50 p-6 sm:p-8 rounded-xl border border-yellow-200 max-w-md mx-auto">

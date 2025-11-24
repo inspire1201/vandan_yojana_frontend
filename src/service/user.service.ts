@@ -170,6 +170,55 @@ class UserService {
       throw error;
     }
   }
+
+
+  public async getSmData (token:any) {
+    try {
+      const res = await axiosInstance.get("/admin/smdata",
+        { headers:
+
+          {
+            Authorization: `Bearer ${token}`
+          }
+        }
+          );
+      return res.data;
+    } catch (error: any) {
+      throw error;
+    }
+  }
+  public async getVdData (token:any) {
+    try {
+      const res = await axiosInstance.get("/admin/vddata",
+        { headers:
+
+          {
+            Authorization: `Bearer ${token}`
+          }
+        }
+          );
+      return res.data;
+    } catch (error: any) {
+      throw error;
+    }
+  }
+  public async getCluData (token:any) {
+    try {
+      const res = await axiosInstance.get("/admin/cludata",
+        { headers:
+
+          {
+            Authorization: `Bearer ${token}`
+          }
+        }
+          );
+      return res.data;
+    } catch (error: any) {
+      throw error;
+    }
+  }
+
+
 }
 
 

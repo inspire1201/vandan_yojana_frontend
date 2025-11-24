@@ -4,6 +4,7 @@ import { Provider } from 'react-redux';
 import { store } from './store/store';
 import { useAppSelector, useAppDispatch } from './store/hooks';
 import { loadFromStorage } from './store/authSlice';
+
 import Navbar from './Components/Navbar';
 import ReportsDashboard from './Components/Report/ReportsDashboard';
 import BoothSummary from './Components/Report/BoothSummary';
@@ -15,8 +16,9 @@ import './i18n';
 // import AssemblyWrapper from './wrapper/AssemblyWrapper';
 // import LokSabhaWrapper from './wrapper/LokSabhaWrapper';
 import UnifiedMapPage from './Components/Maps/UnifiedMapPage';
-
-
+// import HierarchyDropdownTable from './Components/Inspire_FulStack/HierarchyDropdownTable';
+import ShowCountPage from './Components/Inspire_FulStack/ShowCountPage';
+import NewHierarchyDropdownTable from './Components/Inspire_FulStack/NewHierarchyDropdownTable';
 
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
@@ -34,9 +36,12 @@ const PublicRoute = ({ children }: { children: React.ReactNode }) => {
 function AppContent() {
   const dispatch = useAppDispatch();
 
+
   useEffect(() => {
     dispatch(loadFromStorage());
   }, [dispatch]);
+
+ 
 
   return (
     <>
@@ -46,9 +51,10 @@ function AppContent() {
       
         <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
         <Route path="/maps" element={<ProtectedRoute><UnifiedMapPage/></ProtectedRoute>} />
-        {/* <Route path="/district-chart-data" element={<ProtectedRoute><DistrictWrapper/></ProtectedRoute>} />
-        <Route path="/assembly-chart-data" element={<ProtectedRoute><AssemblyWrapper/></ProtectedRoute>} />
-        <Route path="/loksabha-chart-data" element={<ProtectedRoute><LokSabhaWrapper/></ProtectedRoute>} /> */}
+        {/* <Route path="/dashboard" element={<ProtectedRoute><HierarchyDropdownTable/></ProtectedRoute>} /> */}
+        <Route path="/dashboard" element={<ProtectedRoute><NewHierarchyDropdownTable/></ProtectedRoute>} />
+        <Route path="/show-count" element={<ProtectedRoute><ShowCountPage/></ProtectedRoute>} />
+      
         <Route path="/reports" element={<ProtectedRoute><ReportsDashboard /></ProtectedRoute>} />
         <Route path="/booth-summary" element={<ProtectedRoute><BoothSummary /></ProtectedRoute>} />
    
@@ -62,9 +68,11 @@ function AppContent() {
 function App() {
   return (
     <Provider store={store}>
-      <Router>
-        <AppContent />
-      </Router>
+     
+        <Router>
+          <AppContent />
+        </Router>
+   
     </Provider>
   );
 }

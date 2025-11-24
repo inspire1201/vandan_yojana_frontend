@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import Logo from "../assets/bjp_logo.png";
 import HeaderImage from "../assets/mahatari_header.jpg";
-import { Mail, Phone, Globe, ChevronDown, Menu, X, User, LogOut, UserPlus, Users, MapPin, BarChart3, FileText } from "lucide-react";
+import { Mail, Phone, Globe, ChevronDown, Menu, X, User, LogOut, UserPlus, Users,  LayoutDashboard } from "lucide-react";
 import { useAppSelector, useAppDispatch } from "../store/hooks";
 import { logout } from "../store/authSlice";
 import { toast } from "react-hot-toast";
@@ -29,9 +29,8 @@ const Navbar: React.FC = () => {
   };
 
   const navItems = [
-    { path: '/reports', label: t('navbar.reports'), icon: FileText, color: 'bg-white text-blue-600 hover:bg-blue-50 border border-blue-200' },
-    { path: '/booth-summary', label: t('navbar.boothSummary'), icon: BarChart3, color: 'bg-white text-green-600 hover:bg-green-50 border border-green-200' },
-    { path: '/maps', label: 'Maps', icon: MapPin, color: 'bg-white text-purple-600 hover:bg-purple-50 border border-purple-200' },
+    ...(user?.role === 'ADMIN' ? [{ path: '/dashboard', label: "Dashboard", icon: LayoutDashboard, color: 'bg-white text-orange-500 hover:bg-orange-50 border border-orange-200' }] : []),
+    ...(user?.role === 'ADMIN' ? [{ path: '/show-count', label: "Show Count", icon: LayoutDashboard, color: 'bg-white text-orange-500 hover:bg-orange-50 border border-orange-200' }] : []),
   ];
 
   return (
@@ -213,3 +212,4 @@ const Navbar: React.FC = () => {
 };
 
 export default Navbar;
+
