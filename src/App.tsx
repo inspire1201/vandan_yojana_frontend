@@ -12,6 +12,7 @@ import Login from './Components/auth/Login';
 import RegisterUser from './Components/auth/RegisterUser';
 import AllUsers from './Components/auth/AllUsers';
 import AdminDashboard from './Components/Admin/AdminDashboard';
+import CallCenterReport from './Components/CallCenter/CallCenterReport';
 import './i18n';
 // import DistrictWrapper from './wrapper/DistrictWrapper';
 // import AssemblyWrapper from './wrapper/AssemblyWrapper';
@@ -73,6 +74,7 @@ function AppContent() {
    
         <Route path="/register" element={<AdminRoute><RegisterUser /></AdminRoute>} />
         <Route path="/users" element={<AdminRoute><AllUsers /></AdminRoute>} />
+        <Route path="/call-center" element={<ProtectedRoute><CallCenterReport /></ProtectedRoute>} />
       </Routes>
     </>
   );

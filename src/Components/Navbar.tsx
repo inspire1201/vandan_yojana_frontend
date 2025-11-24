@@ -127,6 +127,14 @@ const Navbar: React.FC = () => {
 
                       {user?.role === 'ADMIN' && (
                         <div className="py-1">
+
+                          <button
+                            onClick={() => { navigate('/'); setIsUserMenuOpen(false); }}
+                            className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+                          >
+                            <Users className="w-4 h-4" />
+                             Admin Dasboard
+                          </button>
                           <button
                             onClick={() => { navigate('/register'); setIsUserMenuOpen(false); }}
                             className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
@@ -141,6 +149,7 @@ const Navbar: React.FC = () => {
                             <Users className="w-4 h-4" />
                             {t('navbar.allUsers')}
                           </button>
+                          
                         </div>
                       )}
 
