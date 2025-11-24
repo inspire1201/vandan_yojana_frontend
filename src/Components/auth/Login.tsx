@@ -30,9 +30,7 @@ function Login() {
     formState: { errors },
     reset,
     watch,
-  } = useForm<FormData>({
-    defaultValues: { role: 'ADMIN', reports: 'Mahatari Vandan Yojana Report' },
-  });
+  } = useForm<FormData>();
 
   const selectedReport = watch('reports');
   
@@ -105,6 +103,7 @@ function Login() {
               disabled={isLoading}
               className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:border-indigo-600 focus:outline-none transition-all"
             >
+              <option value="">Select Report</option>
               <option value="Mahatari Vandan Yojana Report">{t('reports.mahatariVandan')}</option>
               <option value="Call Center Report">{t('reports.callCenter')}</option>
               <option value="WhatsApp/OBD/SMS Report">{t('reports.whatsappObd')}</option>
@@ -122,6 +121,7 @@ function Login() {
               disabled={isLoading}
               className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:border-indigo-600 focus:outline-none transition-all"
             >
+              <option value="">Select Role</option>
               <option value="ADMIN">{t('common.admin')}</option>
               <option value="DISTRICT_USER">{t('common.districtUser')}</option>
               <option value="VIDHANSABHA_USER">{t('common.vidhansabhaUser')}</option>
