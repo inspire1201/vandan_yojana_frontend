@@ -1,7 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAppSelector } from '../../store/hooks';
-import { LayoutDashboard, Users, UserPlus, FileText, Map, PieChart, BarChart3 } from 'lucide-react';
+import { LayoutDashboard,  FileText, Map, PieChart, BarChart3 } from 'lucide-react';
 
 const AdminDashboard: React.FC = () => {
   const navigate = useNavigate();
