@@ -1,15 +1,33 @@
 import axios from "axios";
+import { store } from '../store/store';
+// import { logout } from '../store/authSlice';
+// import toast from "react-hot-toast";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://44.197.21.241:8080";
 
-console.log("import.meta.env.VITE_API_BASE_URL", import.meta.env.VITE_API_BASE_URL);
-console.log("API_BASE_URL", API_BASE_URL);
-// Create an Axios instance
 const axiosInstance = axios.create({
-  baseURL: `${API_BASE_URL}/api/v1`, // Set the base URL once here
+  baseURL: `${API_BASE_URL}/api/v1`,
   headers: {
-    "Content-Type": "application/json", // Set default headers if needed
+    "Content-Type": "application/json",
   },
 });
+
+// Request interceptor
+axiosInstance.interceptors.request.use(
+  (config) => {
+    const token = store.getState().auth.token;
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
+
+// Response interceptor
+axiosInstance.interceptors.response.use(
+  (response) => response,
+  (error) => Promise.reject(error)
+);
 
 export default axiosInstance;        

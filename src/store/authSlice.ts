@@ -1,5 +1,6 @@
 import { createSlice } from '@reduxjs/toolkit';
 import type { PayloadAction } from '@reduxjs/toolkit';
+import toast from 'react-hot-toast';
 
 interface User {
   id: number;
@@ -53,11 +54,33 @@ const authSlice = createSlice({
       const token = localStorage.getItem('token');
       const user = localStorage.getItem('user');
       const selectedReport = localStorage.getItem('selectedReport');
+      
       if (token && user) {
-        state.token = token;
-        state.user = JSON.parse(user);
-        state.isAuthenticated = true;
-        state.selectedReport = selectedReport;
+        // Check if token is expired
+        try {
+          const payload = JSON.parse(atob(token.split('.')[1]));
+          const currentTime = Date.now() / 1000;
+          
+          if (payload.exp < currentTime) {
+            // Token expired
+            toast.error('Your session has expired. Please login again.');
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+            localStorage.removeItem('selectedReport');
+            state.isLoading = false;
+            return;
+          }
+          
+          state.token = token;
+          state.user = JSON.parse(user);
+          state.isAuthenticated = true;
+          state.selectedReport = selectedReport;
+        } catch (error) {
+          // Invalid token
+          localStorage.removeItem('token');
+          localStorage.removeItem('user');
+          localStorage.removeItem('selectedReport');
+        }
       }
       state.isLoading = false;
     },
