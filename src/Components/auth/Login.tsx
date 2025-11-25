@@ -32,6 +32,7 @@ function Login() {
     watch,
   } = useForm<FormData>();
 
+  const selectedRole = watch('role');
   const selectedReport = watch('reports');
   
   // Update navbar in real-time when report selection changes
@@ -71,8 +72,9 @@ function Login() {
         console.log("msg",msg)
         toast.error(msg);
       }
-    } catch (err: any) {
-      const msg = err?.response?.data?.message || err?.message || t('login.networkError');
+    } catch (err: unknown) {
+      const errorObj = err as { response?: { data?: { message?: string } }; message?: string };
+      const msg = errorObj?.response?.data?.message || errorObj?.message || t('login.networkError');
       setError(msg);
       console.log("msg",msg)
       toast.error(msg);
@@ -93,25 +95,7 @@ function Login() {
         
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-          {/* Reports Dropdown */}
-          <div>
-            <label className="block text-sm font-medium mb-1" style={{color: '#EF7808'}}>
-              {t('login.reports')}
-            </label>
-            <select
-              {...register('reports', { required: t('login.selectReports') })}
-              disabled={isLoading}
-              className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:border-indigo-600 focus:outline-none transition-all"
-            >
-              <option value="">Select Report</option>
-              <option value="Mahatari Vandan Yojana Report">{t('reports.mahatariVandan')}</option>
-              <option value="Call Center Report">{t('reports.callCenter')}</option>
-              <option value="WhatsApp/OBD/SMS Report">{t('reports.whatsappObd')}</option>
-            </select>
-            {errors.reports && (
-              <p className="mt-1 text-sm text-red-600">{errors.reports.message}</p>
-            )}
-          </div>
+          {/* Role Dropdown - First */}
           <div>
             <label className="block text-sm font-medium mb-1" style={{color: '#EF7808'}}>
               {t('login.role')}
@@ -131,7 +115,28 @@ function Login() {
             )}
           </div>
 
-          {/* 4-Digit Code */}
+{/* Reports Dropdown - Only for non-admin users */}
+          {selectedRole && selectedRole !== 'ADMIN' && (
+            <div>
+              <label className="block text-sm font-medium mb-1" style={{color: '#EF7808'}}>
+                {t('login.reports')}
+              </label>
+              <select
+                {...register('reports', { required: selectedRole === 'DISTRICT_USER' || selectedRole === 'VIDHANSABHA_USER' || selectedRole === 'LOKSABHA_USER' ? t('login.selectReports') : false })}
+                disabled={isLoading}
+                className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:border-indigo-600 focus:outline-none transition-all"
+              >
+                <option value="">Select Report</option>
+                <option value="Mahatari Vandan Yojana Report">{t('reports.mahatariVandan')}</option>
+                <option value="Call Center Report">{t('reports.callCenter')}</option>
+                <option value="WhatsApp/OBD/SMS Report">{t('reports.whatsappObd')}</option>
+              </select>
+              {errors.reports && (
+                <p className="mt-1 text-sm text-red-600">{errors.reports.message}</p>
+              )}
+            </div>
+          )}
+          {/* 4-Digit Code - Second */}
           <div>
             <label className="block text-sm font-medium mb-1" style={{color: '#EF7808'}}>
               {t('login.code')}
@@ -165,6 +170,10 @@ function Login() {
               </p>
             )}
           </div>
+
+          
+
+
 
           {/* Global error */}
           {error && (
