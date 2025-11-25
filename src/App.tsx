@@ -21,6 +21,7 @@ import UnifiedMapPage from './Components/Maps/UnifiedMapPage';
 // import HierarchyDropdownTable from './Components/Inspire_FulStack/HierarchyDropdownTable';
 import ShowCountPage from './Components/Inspire_FulStack/ShowCountPage';
 import NewHierarchyDropdownTable from './Components/Inspire_FulStack/NewHierarchyDropdownTable';
+import HierarchyDropdownTable from './Components/Inspire_FulStack/HierarchyDropdownTable';
 
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
@@ -65,8 +66,8 @@ function AppContent() {
       
         <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
         <Route path="/maps" element={<ProtectedRoute><UnifiedMapPage/></ProtectedRoute>} />
-        {/* <Route path="/dashboard" element={<ProtectedRoute><HierarchyDropdownTable/></ProtectedRoute>} /> */}
-        <Route path="/dashboard" element={<ProtectedRoute><NewHierarchyDropdownTable/></ProtectedRoute>} />
+        <Route path="/dashboard" element={<ProtectedRoute><HierarchyDropdownTable/></ProtectedRoute>} />
+        <Route path="/new-dashboard" element={<ProtectedRoute><NewHierarchyDropdownTable/></ProtectedRoute>} />
         <Route path="/show-count" element={<ProtectedRoute><ShowCountPage/></ProtectedRoute>} />
       
         <Route path="/reports" element={<ProtectedRoute><ReportsDashboard /></ProtectedRoute>} />

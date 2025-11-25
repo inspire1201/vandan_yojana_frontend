@@ -3,7 +3,7 @@ import { store } from '../store/store';
 // import { logout } from '../store/authSlice';
 // import toast from "react-hot-toast";
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://44.197.21.241:8080";
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ;
 
 const axiosInstance = axios.create({
   baseURL: `${API_BASE_URL}/api/v1`,

@@ -85,6 +85,7 @@ const AdminDashboard: React.FC = () => {
         },
         { 
           title: 'Dashboard Analytics', 
+          // path: '/dashboard', 
           path: '/dashboard', 
           icon: BarChart3,
           description: 'Real-time statistics and insights',
