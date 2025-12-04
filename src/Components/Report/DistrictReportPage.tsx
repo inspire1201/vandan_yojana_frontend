@@ -6,12 +6,12 @@ import { ReportLayout } from "./ReportLayout";
 import { ChartSection } from "./ChartSection";
 import { FullPageLoader, ButtonLoader } from "./LoaderComponents";
 import { ErrorMessage } from "./ErrorComponents";
-import EconomicStatusChart from "../../Components/EconomicStatusChart";
-import SchemeSpendingAndSavingChart from "../SchemeInfoMediumChart";
-import MinisterReachImpactChart from "../MinisterReachImpactChart";
-import MinisterYearPerformanceChart from "../../Components/MinisterYearPerformanceChart";
-import CooperativeSchemesAwareness from "../../Components/CooperativeSchemesAwareness";
-import BjpGovernmentSatisfactionChart from "../../Components/BjpGovernmentSatisfactionChart";
+import EconomicStatusChart from "./ReportCharts/EconomicStatusChart";
+import SchemeSpendingAndSavingChart from "./ReportCharts/SchemeInfoMediumChart";
+import MinisterReachImpactChart from "./ReportCharts/MinisterReachImpactChart";
+import MinisterYearPerformanceChart from "./ReportCharts/MinisterYearPerformanceChart";
+import CooperativeSchemesAwareness from "./ReportCharts/CooperativeSchemesAwareness";
+import BjpGovernmentSatisfactionChart from "./ReportCharts/BjpGovernmentSatisfactionChart";
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
 
@@ -104,11 +104,10 @@ export const DistrictReportPage: React.FC = () => {
             <h3 className="text-sm font-medium text-gray-900 mb-3">District Type</h3>
             <div className="flex gap-3">
               {(["ALL", "R", "U"] as const).map((t) => (
-                <label key={t} className={`flex items-center gap-2 cursor-pointer px-3 py-2 rounded-lg border transition-all ${
-                  type === t 
-                    ? "bg-orange-50 border-orange-300 text-orange-700" 
+                <label key={t} className={`flex items-center gap-2 cursor-pointer px-3 py-2 rounded-lg border transition-all ${type === t
+                    ? "bg-orange-50 border-orange-300 text-orange-700"
                     : "bg-white border-gray-200 text-gray-600 hover:bg-gray-50"
-                }`}>
+                  }`}>
                   <input
                     type="radio"
                     name="type"
@@ -123,7 +122,7 @@ export const DistrictReportPage: React.FC = () => {
               ))}
             </div>
           </div>
-          
+
           {/* Generate Button */}
           <div className="p-4">
             <button

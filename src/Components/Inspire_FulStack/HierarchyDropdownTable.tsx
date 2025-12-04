@@ -271,7 +271,7 @@ const HierarchyDropdownTable: React.FC = () => {
               Object.values(sakhaGroups).forEach((sg: any) => {
                 const si = sg[0];
                 const sakhaNode: Node = {
-                  id: `sakha-${si.SAK_ID}`, name: si.SAK_NM, type: "sakha", children: [],
+                  id: `sakha-${si.SAK_ID}`, name: si.SAK_NM, type: "shakti", children: [],
                   metadata: { ...mandalNode.metadata, sakId: si.SAK_ID, sakName: si.SAK_NM }, booths: [],
                 };
 
@@ -389,6 +389,7 @@ const HierarchyDropdownTable: React.FC = () => {
 
   // --- Computed Data ---
   const allSelectedItems = useMemo(() => Array.from(selectedItemsMap.values()), [selectedItemsMap]);
+  // console.log("all selectedItems",allSelectedItems);
 
   // --- SUMMARY STATS (FIXED FOR ID COLLISION) ---
   const summaryStats = useMemo(() => {
@@ -531,9 +532,27 @@ const HierarchyDropdownTable: React.FC = () => {
               <div className="flex gap-7">
 
               
-              <button onClick={()=>navigate("/show-count")}  className="bg-[green] text-white px-6 py-2 rounded-lg text-sm font-semibold hover:bg-blue-700 flex items-center gap-2 disabled:opacity-50">
+              <button onClick={()=>navigate("/show-count")}  className="bg-[green] text-white px-6 py-2 rounded-lg text-sm font-semibold hover:bg-green-700 flex items-center gap-2 disabled:opacity-50">
                 Show Count
               </button>
+              {activeSection === 'cluster' ? (
+                <button onClick={()=>{
+                   navigate('/cluster-report',{
+                    state:allSelectedItems
+                   })
+                }} disabled={selectedItemsMap.size === 0} className="bg-blue-600 text-white px-6 py-2 rounded-lg text-sm font-semibold hover:bg-blue-700 flex items-center gap-2 disabled:opacity-50">
+                   Cluster Report
+                </button>
+              ) : (
+                <button onClick={()=>{
+                   navigate('/sambhag-report',{
+                    state:allSelectedItems
+                   })
+                }} disabled={selectedItemsMap.size === 0} className="bg-blue-600 text-white px-6 py-2 rounded-lg text-sm font-semibold hover:bg-blue-700 flex items-center gap-2 disabled:opacity-50">
+                   Sambhag Report
+                </button>
+              )}
+            
               <button onClick={handleSubmitSelection} disabled={selectedItemsMap.size === 0 || submissionLoading} className="bg-blue-600 text-white px-6 py-2 rounded-lg text-sm font-semibold hover:bg-blue-700 flex items-center gap-2 disabled:opacity-50">
                 {submissionLoading ? <Spinner /> : <CheckCircle2 className="w-4 h-4" />} Submit & View
               </button>
@@ -550,7 +569,7 @@ const HierarchyDropdownTable: React.FC = () => {
                <SummaryCard label={activeSection === 'cluster' ? "Lok Sabha" : "Jila"} count={summaryStats.lokSabha} icon={<MapPin />} color="bg-indigo-50 text-indigo-700" />
                <SummaryCard label="Vidhan Sabha" count={summaryStats.vidhanSabha} icon={<Layers />} color="bg-purple-50 text-purple-700" />
                <SummaryCard label="Mandal" count={summaryStats.mandal} icon={<Users />} color="bg-pink-50 text-pink-700" />
-               <SummaryCard label="Sakha" count={summaryStats.sakha} icon={<Users />} color="bg-rose-50 text-rose-700" />
+               <SummaryCard label="shakti" count={summaryStats.sakha} icon={<Users />} color="bg-rose-50 text-rose-700" />
                <SummaryCard label="Booth" count={summaryStats.booth} icon={<Vote />} color="bg-orange-50 text-orange-700" isMain />
             </div>
 
@@ -593,7 +612,7 @@ const HierarchyDropdownTable: React.FC = () => {
                        <TableHeader label={activeSection === 'cluster' ? "Lok Sabha" : "Jila"} column="childName" />
                        <TableHeader label="Vidhan Sabha" column="vidhanSabha" />
                        <TableHeader label="Mandal" column="manName" />
-                       <TableHeader label="Sakha" column="sakName" />
+                       <TableHeader label="shakti" column="sakName" />
                        <TableHeader label="Booth" column="btName" />
                      </tr>
                    </thead>
@@ -646,3 +665,5 @@ const SummaryCard = ({ label, count, icon, color, isMain = false }: { label: str
 );
 
 export default HierarchyDropdownTable;
+
+

@@ -293,7 +293,7 @@ const toNumber = (val: any): number => {
 
 // === Main Component ===
 const SchemeSpendingAndSavingChart: React.FC<SchemeSpendingAndSavingChartProps> = memo(({ data }) => {
-  console.log("Rendering SchemeSpendingAndSavingChart with data:", data);
+  // console.log("Rendering SchemeSpendingAndSavingChart with data:", data);
   const firstChartRef = useRef<HTMLCanvasElement>(null);
   const secondChartRef = useRef<HTMLCanvasElement>(null);
   const firstChartInstanceRef = useRef<ChartJS | null>(null);

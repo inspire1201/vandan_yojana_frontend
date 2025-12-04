@@ -22,6 +22,10 @@ import UnifiedMapPage from './Components/Maps/UnifiedMapPage';
 import ShowCountPage from './Components/Inspire_FulStack/ShowCountPage';
 // import NewHierarchyDropdownTable from './Components/Inspire_FulStack/NewHierarchyDropdownTable';
 import HierarchyDropdownTable from './Components/Inspire_FulStack/HierarchyDropdownTable';
+import SambhagReport from './Components/Report/reports/SambhagReport';
+import ClusterReport from './Components/Report/reports/ClusterReport';
+
+import DashboardLayout from './Components/WhatsApp_champaigns/DashboardLayout';
 
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
@@ -56,39 +60,43 @@ function AppContent() {
     dispatch(loadFromStorage());
   }, [dispatch]);
 
- 
 
   return (
     <>
       <Navbar />
       <Routes>
         <Route path="/" element={<ProtectedRoute><HomePage /></ProtectedRoute>} />
-      
+
         <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
-        <Route path="/maps" element={<ProtectedRoute><UnifiedMapPage/></ProtectedRoute>} />
-        <Route path="/dashboard" element={<ProtectedRoute><HierarchyDropdownTable/></ProtectedRoute>} />
+        <Route path="/maps" element={<ProtectedRoute><UnifiedMapPage /></ProtectedRoute>} />
+        <Route path="/dashboard" element={<ProtectedRoute><HierarchyDropdownTable /></ProtectedRoute>} />
         {/* <Route path="/new-dashboard" element={<ProtectedRoute><NewHierarchyDropdownTable/></ProtectedRoute>} /> */}
-        <Route path="/show-count" element={<ProtectedRoute><ShowCountPage/></ProtectedRoute>} />
-      
+        <Route path="/show-count" element={<ProtectedRoute><ShowCountPage /></ProtectedRoute>} />
+        <Route path="/sambhag-report" element={<ProtectedRoute><SambhagReport /></ProtectedRoute>} />
+        <Route path="/cluster-report" element={<ProtectedRoute><ClusterReport /></ProtectedRoute>} />
+        <Route path="/campaign-dashboard" element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>} />
+        
+     
+
         <Route path="/reports" element={<ProtectedRoute><ReportsDashboard /></ProtectedRoute>} />
         <Route path="/booth-summary" element={<ProtectedRoute><BoothSummary /></ProtectedRoute>} />
-   
+
         <Route path="/register" element={<AdminRoute><RegisterUser /></AdminRoute>} />
         <Route path="/users" element={<AdminRoute><AllUsers /></AdminRoute>} />
         <Route path="/call-center" element={<ProtectedRoute><CallCenterReport /></ProtectedRoute>} />
       </Routes>
     </>
   );
-} 
+}
 
 function App() {
   return (
     <Provider store={store}>
-     
-        <Router>
-          <AppContent />
-        </Router>
-   
+
+      <Router>
+        <AppContent />
+      </Router>
+
     </Provider>
   );
 }

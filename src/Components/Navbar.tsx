@@ -1,7 +1,7 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import Logo from "../assets/bjp_logo.png";
-import HeaderImage from "../assets/mahatari_header.jpg";
+// import HeaderImage from "../assets/mahatari_header.jpg";
 import { Mail, Phone, Globe, ChevronDown, Menu, X, User, LogOut, UserPlus, Users, } from "lucide-react";
 import { useAppSelector, useAppDispatch } from "../store/hooks";
 import { logout } from "../store/authSlice";
@@ -13,9 +13,10 @@ const Navbar: React.FC = () => {
   const [isLangOpen, setIsLangOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
-  const { user, isAuthenticated, selectedReport } = useAppSelector((state) => state.auth);
+  const { user, isAuthenticated } = useAppSelector((state) => state.auth);
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
+  const userMenuRef = useRef<HTMLDivElement>(null);
 
   const language = i18n.language === 'hi' ? 'HI' : 'EN';
   const setLanguage = (lang: 'EN' | 'HI') => {
@@ -27,6 +28,22 @@ const Navbar: React.FC = () => {
     toast.success('Logged out successfully');
     navigate('/login');
   };
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
+        setIsUserMenuOpen(false);
+      }
+    };
+
+    if (isUserMenuOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isUserMenuOpen]);
 
 
 
@@ -83,9 +100,9 @@ const Navbar: React.FC = () => {
             {/* Logo Section */}
             <Link to="/" className="flex items-center gap-3 hover:opacity-90 transition-opacity">
               <img src={Logo} alt="BJP Logo" className="w-10 h-10 object-contain" />
-              <img src={HeaderImage} alt="Mahatari Header" className="h-10 object-contain hidden sm:block" />
+              {/* <img src={HeaderImage} alt="Mahatari Header" className="h-10 object-contain hidden sm:block" /> */}
               <h1 className="text-white text-lg font-bold hidden md:block">
-                {selectedReport || t('navbar.title')}
+               भारतीय जनता पार्टी, छत्तीसगढ़
               </h1>
             </Link>
 
@@ -107,7 +124,7 @@ const Navbar: React.FC = () => {
 
               {/* User Menu */}
               {isAuthenticated ? (
-                <div className="relative">
+                <div className="relative" ref={userMenuRef}>
                   <button
                     onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
                     className="flex items-center gap-2 px-3 py-2 rounded-lg bg-white text-orange-500 hover:bg-orange-50 transition-colors font-medium shadow-md"
@@ -133,7 +150,7 @@ const Navbar: React.FC = () => {
                             className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
                           >
                             <Users className="w-4 h-4" />
-                             Admin Dasboard
+                            Admin Dasboard
                           </button>
                           <button
                             onClick={() => { navigate('/register'); setIsUserMenuOpen(false); }}
@@ -149,7 +166,7 @@ const Navbar: React.FC = () => {
                             <Users className="w-4 h-4" />
                             {t('navbar.allUsers')}
                           </button>
-                          
+
                         </div>
                       )}
 

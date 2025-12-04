@@ -66,6 +66,7 @@ import {
 
 
   ChevronRight,
+  LucideAlignCenter,
   
 } from 'lucide-react';
 
@@ -91,6 +92,13 @@ const AdminDashboard: React.FC = () => {
           description: 'Real-time statistics and insights',
           color: 'bg-green-500'
         },
+         { 
+          title: 'Champaingn Dashboard', 
+          path: '/campaign-dashboard', 
+          icon: LucideAlignCenter,
+          description: 'Call center performance metrics',
+          color: 'bg-yellow-500'
+        },
         { 
           title: 'Call Center Report', 
           path: '/call-center', 
@@ -98,6 +106,7 @@ const AdminDashboard: React.FC = () => {
           description: 'Call center performance metrics',
           color: 'bg-purple-500'
         },
+       
        
       ]
     },

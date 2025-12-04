@@ -698,7 +698,7 @@ const getDetailIdForMatch = (detail: any, level: string): string | number | unde
     // the ID might be a composite key of the parent levels.
     return `${detail.VID_ID}_${detail.MAN_ID}`;
   }
-  if (level === 'sakha' && (detail.VID_ID !== undefined && detail.SAK_ID !== undefined)) {
+  if (level === 'shakti' && (detail.VID_ID !== undefined && detail.SAK_ID !== undefined)) {
     return `${detail.VID_ID}_${detail.SAK_ID}`;
   }
 
@@ -752,7 +752,7 @@ const ShowCountPage = () => {
         { value: "jila", label: "Jila" },
         { value: "vid", label: "Vidhan Sabha" },
         { value: "mandal", label: "Mandal" },
-        { value: "sakha", label: "Sakha" },
+        { value: "shakti", label: "shakti" },
       ];
     } else {
       return [
@@ -760,7 +760,7 @@ const ShowCountPage = () => {
         { value: "lok", label: "Lok Sabha" },
         { value: "vid", label: "Vidhan Sabha" },
         { value: "mandal", label: "Mandal" },
-        { value: "sakha", label: "Sakha" },
+        { value: "shakti", label: "shakti" },
       ];
     }
   }, [activeSection]);
@@ -791,8 +791,8 @@ const ShowCountPage = () => {
     if (level === 'sambhag' && column === 'vid') return 'vidhan-sambhag';
     if (level === 'jila' && column === 'vid') return 'vidhan-jila';
 
-    const columnMap: { [key: string]: string } = { 'mandal': 'mandal', 'sakha': 'sakti', 'booth': 'booth' };
-    const levelMap: { [key: string]: string } = { 'cluster': 'cluster', 'lok': 'loc', 'vid': 'vidhan', 'sambhag': 'sambhag', 'jila': 'jila', 'mandal': 'mandale', 'sakha': 'sakha' };
+    const columnMap: { [key: string]: string } = { 'mandal': 'mandal', 'shakti': 'sakti', 'booth': 'booth' };
+    const levelMap: { [key: string]: string } = { 'cluster': 'cluster', 'lok': 'loc', 'vid': 'vidhan', 'sambhag': 'sambhag', 'jila': 'jila', 'mandal': 'mandale', 'shakti': 'shakti' };
 
     const columnPart = columnMap[column];
     const levelPart = levelMap[level];

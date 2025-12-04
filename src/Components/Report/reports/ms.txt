@@ -1,0 +1,2399 @@
+// SambhagReportPage.jsx
+
+import React, { useState, useEffect, useRef } from 'react';
+import { buildReportHierarchy } from '../../../utils/useSambhagHierarchy';
+import { useLocation } from 'react-router-dom';
+import axiosInstance from '../../../service/axiosInstance';
+
+type LevelType = 'sambhag' | 'jila' | 'vidhansabha' | 'mandal' | 'shakti' | 'booth';
+
+interface VisibleChild {
+  jilaName?: string;
+  vidName?: string;
+  manName?: string;
+  mandalName?: string;
+  sakId?: number;
+  sakName?: string;
+  sakhaName?: string;
+  boothName?: string;
+  totalVidhans?: number;
+  totalMandals?: number;
+  totalSakhas?: number;
+  totalBooths?: number;
+  originalIndex?: number;
+}
+
+interface SambhagData {
+  sambhagId: string;
+  sambhagName: string;
+  totalJilas?: number;
+  totalVidhans?: number;
+  totalMandals?: number;
+  totalSakhas?: number;
+  totalBooths?: number;
+  visibleChildren: VisibleChild[];
+}
+
+interface ChildData {
+  jilaName?: string;
+  vidName?: string;
+  manName?: string;
+  mandalName?: string;
+  sakId?: number;
+  sakName?: string;
+  sakhaName?: string;
+  boothName?: string;
+  totalVidhans?: number;
+  totalMandals?: number;
+  totalSakhas?: number;
+  totalBooths?: number;
+}
+
+interface JilaGroups {
+  [key: string]: VisibleChild[];
+}
+
+// --- Mock Data (Replace with your actual data fetching) ---
+const mockData = [
+  // Two distinct Sambhags for page break demonstration
+  { id: 1, name: "सरगुजा", childId: 1, childName: "मनेद्रगढ़", vidId: 1, vidhanSabha: "भरतपुर सोनहत", manId: 1, manName: "कुंवारपुर", sakId: 1, sakName: "कंजिया", btId: 37, btName: "चांटी" },
+  { id: 1, name: "सरगुजा", childId: 1, childName: "मनेद्रगढ़", vidId: 1, vidhanSabha: "भरतपुर सोनहत", manId: 1, manName: "कुंवारपुर", sakId: 1, sakName: "कंजिया", btId: 38, btName: "नयाचांटी" },
+  { id: 1, name: "सरगुजा", childId: 1, childName: "मनेद्रगढ़", vidId: 2, vidhanSabha: "बैकुंठपुर", manId: 2, manName: "मनेन्द्रगढ़", sakId: 2, sakName: "कोरिया", btId: 39, btName: "कोरिया बूथ" },
+  { id: 2, name: "बिलासपुर", childId: 3, childName: "बिलासपुर जिला", vidId: 4, vidhanSabha: "बिलासपुर शहर", manId: 5, manName: "बिलासपुर मंडल", sakId: 6, sakName: "शक्ति A", btId: 43, btName: "बूथ 50" },
+  { id: 2, name: "बिलासपुर", childId: 3, childName: "बिलासपुर जिला", vidId: 4, vidhanSabha: "बिलासपुर शहर", manId: 5, manName: "बिलासपुर मंडल", sakId: 7, sakName: "शक्ति B", btId: 44, btName: "बूथ 51" },
+];
+
+// Removed gradeColors as requested
+
+const SambhagReportPage = () => {
+  const location = useLocation();
+  const navigatedData = (location.state || mockData);
+  const data = navigatedData || mockData;
+
+  const [reportData, setReportData] = useState<SambhagData[]>([]);
+  const [upTo, setUpTo] = useState<LevelType>('sambhag');
+  const [isExporting, setIsExporting] = useState(false);
+  const reportRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const summary: SambhagData[] = buildReportHierarchy(data, upTo);
+    setReportData(summary);
+  }, [upTo, data]);
+
+  const exportPdf = async () => {
+    if (isExporting) return;
+    
+    try {
+      setIsExporting(true);
+      const reportElement = reportRef.current;
+      if (!reportElement) return;
+      
+      const htmlContent = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="UTF-8">
+          <style>
+            * { margin: 0; padding: 0; box-sizing: border-box; }
+            body { font-family: Arial, sans-serif; padding: 20px; }
+            table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+            th, td { border: 2px solid #000; padding: 15px 10px; text-align: left; font-size: 14px; line-height: 1.5; }
+            th { font-weight: bold; text-align: center; font-size: 16px; }
+            .text-center { text-align: center; }
+            .font-bold { font-weight: bold; }
+            .print-header { font-size: 22px; font-weight: bold; margin-bottom: 25px; text-align: center; }
+            .sambhag-page { page-break-before: always; }
+            .sambhag-page:first-child { page-break-before: auto; }
+            .sambhag-header-print { 
+              font-size: 18px; 
+              font-weight: bold; 
+              text-align: center; 
+              margin-bottom: 15px; 
+              padding: 10px; 
+              background-color: #f3f4f6; 
+              border: 2px solid #374151; 
+            }
+            table { border: 2px solid #000 !important; }
+            tbody tr:last-child td { border-bottom: 2px solid #000 !important; }
+            @page { size: A4 landscape; margin: 0.5in; }
+          </style>
+        </head>
+        <body>
+          <div class="print-header">📊 संभाग बूथ रिपोर्ट (Sambhag Booth Report)</div>
+          ${(reportElement as HTMLElement).innerHTML.replace(/sambhag-header/g, 'sambhag-header-print')}
+        </body>
+        </html>
+      `;
+      
+      const response = await axiosInstance.post('/generate-pdf', {
+        html: htmlContent,
+        filename: `Report_${upTo}_${new Date().toISOString().slice(0, 10)}.pdf`
+      }, {
+        responseType: 'blob'
+      });
+      
+      const blob = new Blob([response.data], { type: 'application/pdf' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `Report_${upTo}_${new Date().toISOString().slice(0, 10)}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  // --- Table Headers based on 'upTo' level ---
+  const getTableHeaders = () => {
+    const baseHeaders = {
+      sambhag: 'संभाग (Sambhag)',
+      jila: 'जिला (Jila)',
+      vidhansabha: 'विधानसभा (Vidhan Sabha)',
+      mandal: 'मंडल (Mandal)',
+      shakti: 'शक्ति (Shakti)',
+      booth: 'बूथ (Booth)',
+    };
+
+    // Dynamic Hierarchy Headers
+    const hierarchyHeaders = [baseHeaders.sambhag];
+    if (upTo === 'jila' || upTo === 'vidhansabha' || upTo === 'mandal' || upTo === 'shakti' || upTo === 'booth') {
+      hierarchyHeaders.push(baseHeaders.jila);
+    }
+    if (upTo === 'vidhansabha' || upTo === 'mandal' || upTo === 'shakti' || upTo === 'booth') {
+      hierarchyHeaders.push(baseHeaders.vidhansabha);
+    }
+    if (upTo === 'mandal' || upTo === 'shakti' || upTo === 'booth') {
+      hierarchyHeaders.push(baseHeaders.mandal);
+    }
+    if (upTo === 'shakti' || upTo === 'booth') {
+      hierarchyHeaders.push(baseHeaders.shakti); // Corrected baseHeaders key
+    }
+    if (upTo === 'booth') {
+      hierarchyHeaders.push(baseHeaders.booth);
+    }
+
+    // Dynamic Count Headers (Lower Levels only)
+    const countHeadersMap: Record<LevelType, string[]> = {
+      sambhag: ['जिले (Jilas)', 'विधानसभा (Vidhan)', 'मंडल (Mandal)', 'शक्ति (Shakti)', 'बूथ (Booth)'],
+      jila: ['विधानसभा (Vidhan)', 'मंडल (Mandal)', 'शक्ति (Shakti)', 'बूथ (Booth)'],
+      vidhansabha: ['मंडल (Mandal)', 'शक्ति (Shakti)', 'बूथ (Booth)'],
+      mandal: ['शक्ति (Shakti)', 'बूथ (Booth)'],
+      shakti: ['बूथ (Booth)'],
+      booth: [], // No further counts
+    };
+
+    return {
+      hierarchy: hierarchyHeaders,
+      counts: countHeadersMap[upTo] || [],
+    };
+  };
+
+  const headers = getTableHeaders();
+
+  // --- Dynamic Row Counts ---
+  const getRowCounts = (item: VisibleChild | SambhagData, level: LevelType): number[] => {
+    // Note: The mock data doesn't provide these total counts, so they're assumed to exist on the 'item' object after 'buildReportHierarchy' runs.
+    switch (level) {
+      case 'sambhag':
+        return [(item as SambhagData).totalJilas || 0, item.totalVidhans || 0, item.totalMandals || 0, item.totalSakhas || 0, item.totalBooths || 0];
+      case 'jila':
+        return [item.totalVidhans || 0, item.totalMandals || 0, item.totalSakhas || 0, item.totalBooths || 0];
+      case 'vidhansabha':
+        return [item.totalMandals || 0, item.totalSakhas || 0, item.totalBooths || 0];
+      case 'mandal':
+        return [item.totalSakhas || 0, item.totalBooths || 0];
+      case 'shakti':
+        return [item.totalBooths || 0];
+      default: // booth
+        return [];
+    }
+  };
+
+  // --- Get counts for total rows including current level counts ---
+  const getTotalRowCounts = (sambhag: SambhagData, level: LevelType): number[] => {
+    const counts: number[] = [];
+    
+    switch (level) {
+      case 'sambhag':
+        counts.push(sambhag.totalJilas || 0);
+        counts.push(sambhag.totalVidhans || 0);
+        counts.push(sambhag.totalMandals || 0);
+        counts.push(sambhag.totalSakhas || 0);
+        counts.push(sambhag.totalBooths || 0);
+        break;
+      case 'jila':
+        counts.push(sambhag.totalVidhans || sambhag.visibleChildren.length);
+        counts.push(sambhag.totalMandals || 0);
+        counts.push(sambhag.totalSakhas || 0);
+        counts.push(sambhag.totalBooths || 0);
+        break;
+      case 'vidhansabha':
+        counts.push(sambhag.totalMandals || sambhag.visibleChildren.length);
+        counts.push(sambhag.totalSakhas || 0);
+        counts.push(sambhag.totalBooths || 0);
+        break;
+      case 'mandal':
+        counts.push(sambhag.totalSakhas || sambhag.visibleChildren.length);
+        counts.push(sambhag.totalBooths || 0);
+        break;
+      case 'shakti':
+        counts.push(sambhag.totalBooths || sambhag.visibleChildren.length);
+        break;
+      default: // booth
+        break;
+    }
+    
+    return counts;
+  };
+
+  // --- Helper function to get the displayed name(s) for a child row ---
+  const getChildNames = (child: ChildData, level: LevelType): string[] => {
+    let names: string[] = [];
+    // Determine the names for the row based on the 'upTo' level
+    if (level === 'jila') {
+      names = [child.jilaName || ''];
+    } else if (level === 'vidhansabha') {
+      names = [child.jilaName || '', child.vidName || ''];
+    } else if (level === 'mandal') {
+      names = [child.jilaName || '', child.vidName || '', child.manName || ''];
+    } else if (level === 'shakti') {
+      names = [child.jilaName || '', child.vidName || '', child.manName || '', (child.sakId || '') + ' - ' + (child.sakName || '')];
+    } else if (level === 'booth') {
+      names = [child.jilaName || '', child.vidName || '', child.manName || '', child.sakhaName || child.sakName || '', child.boothName || ''];
+    }
+    return names;
+  };
+  
+
+  return (
+    // Applied simple styling for print
+    <div className="p-8 bg-white min-h-screen">
+     <style>
+  {`
+    /* 1. Global Print Settings for A4 Landscape */
+    @page {
+      size: A4 landscape;
+      margin: 0.5in;
+    }
+    
+    body {
+      /* Forces background colors/shading to be printed */
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+      font-family: Arial, sans-serif;
+    }
+    
+    /* 2. Table Structure and Borders */
+    table {
+      width: 100% !important;
+      border-collapse: collapse !important;
+      page-break-inside: auto !important;
+      /* Main outer border - Apply this to the table element directly in JSX 
+         or ensure it's defined here if not in JSX */
+      border: 2px solid #000; 
+      margin-bottom: 20px; /* Space between different Sambhag tables */
+    }
+    
+    tbody {
+      page-break-inside: auto !important;
+    }
+    
+    tr {
+      page-break-inside: avoid !important;
+      page-break-after: auto;
+    }
+    
+    /* Internal cell borders */
+    th, td {
+      border: 1px solid #000 !important; /* Use 1px for internal lines */
+      padding: 12px 8px !important;
+      font-size: 14px !important;
+      line-height: 1.4 !important;
+      text-align: left;
+    }
+    
+    th {
+      font-weight: bold !important;
+      text-align: center;
+    }
+    
+    /* 3. Hierarchy and Page Breaks */
+    .sambhag-page {
+      page-break-inside: auto !important;
+      overflow: visible !important;
+    }
+    
+    /* Force new page for every subsequent Sambhag table */
+    .sambhag-page:not(:first-child) { 
+      page-break-before: always !important; 
+    }
+
+    /* 🎯 FIX: Ensure the bottom border of the last row on each table is strong */
+    .sambhag-page table {
+      border: 2px solid #000 !important;
+      border-bottom: 2px solid #000 !important;
+    }
+    
+    .sambhag-page tbody tr:last-child td {
+      border-bottom: 2px solid #000 !important;
+    }
+    
+    /* Additional fix for table closure */
+    .sambhag-page table tbody {
+      border-bottom: 2px solid #000 !important;
+    }
+    
+    /* Sambhag header styling for print */
+    .sambhag-header {
+      page-break-after: avoid !important;
+      margin-bottom: 10px !important;
+    }
+
+    /* 4. Utility Classes (for print consistency) */
+    .print-header {
+      font-size: 22px !important;
+      font-weight: bold;
+      margin-bottom: 25px;
+      text-align: center;
+    }
+    
+    /* Hide UI elements during print */
+    @media print {
+      .no-print {
+        display: none !important;
+      }
+    }
+  `}
+</style>
+     
+      <header className="flex justify-between items-center mb-6 border-b border-gray-300 pb-4 no-print">
+  <h1 className="text-3xl font-bold text-gray-800">📊 संभाग  रिपोर्ट (Sambhag  Report)</h1>
+  <div className="flex space-x-4">
+    {/* Level Selector */}
+    <select
+      value={upTo}
+      onChange={(e) => setUpTo(e.target.value as LevelType)}
+      className="p-2 border border-gray-400 rounded-md shadow-sm"
+    >
+      <option value="sambhag">संभाग तक (Up to Sambhag)</option>
+      <option value="jila">जिला तक (Up to Jila)</option>
+      <option value="vidhansabha">विधानसभा तक (Up to Vidhan Sabha)</option>
+      <option value="mandal">मंडल तक (Up to Mandal)</option>
+      <option value="shakti">शक्ति तक (Up to shakti)</option>
+      <option value="booth">बूथ तक (Up to Booth)</option>
+    </select>
+
+    {/* PDF Export Button */}
+    <button
+      onClick={exportPdf}
+      disabled={isExporting}
+      className={`px-4 py-2 font-semibold rounded-md shadow-md transition duration-300 ${
+        isExporting 
+          ? 'bg-gray-400 text-gray-600 cursor-not-allowed' 
+          : 'bg-gray-700 text-white hover:bg-gray-800'
+      }`}
+    >
+      {isExporting ? '⏳ Generating...' : '⬇️ Export to PDF'}
+    </button>
+  </div>
+</header>
+
+
+      <div ref={reportRef} className="shadow-lg rounded-lg overflow-hidden border border-gray-400">
+        {upTo === 'sambhag' ? (
+          <table className="min-w-full divide-y divide-gray-300 border border-gray-400">
+            {/* Table Header: Displayed at the top of the first page */}
+            <thead className="bg-gray-100 border-b border-gray-400">
+              <tr>
+                {/* Hierarchy Headers (Based on 'upTo') */}
+                {headers.hierarchy.map((header, index) => (
+                  <th
+                    key={index}
+                    scope="col"
+                    className="px-6 py-3 text-left text-xs font-bold uppercase tracking-wider text-gray-900 border-r border-gray-300"
+                  >
+                    {header}
+                  </th>
+                ))}
+
+                {/* Count Headers (Lower Levels) */}
+                {headers.counts.map((header, index) => (
+                  <th
+                    key={index}
+                    scope="col"
+                    className="px-6 py-3 text-center text-xs font-bold uppercase tracking-wider text-gray-900 border-r border-gray-300 last:border-r-0"
+                  >
+                    {header}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+
+            <tbody className="divide-y divide-gray-300">
+              {reportData.map((sambhag) => (
+                // The key element for the page break
+                <React.Fragment key={sambhag.sambhagId}>
+
+                {/* 1. Sambhag Row - Show as header for non-sambhag levels, as summary for sambhag level */}
+                {upTo === 'sambhag' ? (
+                  <tr className="font-extrabold border-t-4 border-black hover:bg-gray-100 transition duration-150">
+                    <td className="px-6 py-4 whitespace-nowrap text-lg text-gray-900 border-r  border-b border-gray-200" colSpan={headers.hierarchy.length}>
+                      {sambhag.sambhagId} - {sambhag.sambhagName}
+                    </td>
+                    {getRowCounts(sambhag, 'sambhag').slice(headers.hierarchy.length - 1).map((count, index) => (
+                      <td
+                        key={index}
+                        className="px-6 py-4 whitespace-nowrap text-sm text-center font-extrabold text-gray-900 bg-orange-100 border-r  border-b border-gray-200 last:border-r-0"
+                      >
+                        {count}
+                      </td>
+                    ))}
+                  </tr>
+                ) : (
+                  <tr className="sambhag-section bg-gray-200 border-t-4 border-black">
+                    <td className="px-6 py-4 whitespace-nowrap text-lg font-bold text-gray-900 border-r border-b border-gray-200" colSpan={headers.hierarchy.length + headers.counts.length}>
+                      {sambhag.sambhagId} - {sambhag.sambhagName}
+                    </td>
+                  </tr>
+                )}
+
+                {/* 2. Visible Children Rows with proper hierarchical grouping */}
+                {(() => {
+                  if (upTo === 'jila') {
+                    // Simple jila level display
+                    const jilaGroups = sambhag.visibleChildren.reduce((groups: JilaGroups, child, index) => {
+                      const jilaName = child.jilaName || 'Unknown';
+                      if (!groups[jilaName]) groups[jilaName] = [];
+                      groups[jilaName].push({ ...child, originalIndex: index });
+                      return groups;
+                    }, {});
+
+                    let globalIndex = 0;
+                    return Object.entries(jilaGroups).map(([jilaName, jilaChildren]) => {
+                      return jilaChildren.map((child: VisibleChild, jilaIndex: number) => {
+                        const currentGlobalIndex = globalIndex++;
+                        return (
+                          <tr key={currentGlobalIndex} className="hover:bg-gray-50 transition duration-150">
+                            {currentGlobalIndex === 0 && (
+                              <td rowSpan={sambhag.visibleChildren.length} className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 text-center font-medium align-middle">
+                                {sambhag.sambhagName}
+                              </td>
+                            )}
+                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-700">{jilaName}</td>
+                            {getRowCounts(child, upTo).map((count, countIndex) => (
+                              <td key={countIndex} className="px-6 py-4 whitespace-nowrap text-sm text-center text-gray-700">{count}</td>
+                            ))}
+                          </tr>
+                        );
+                      });
+                    }).flat();
+                  }
+
+                  // Create hierarchical structure with proper grouping
+                  const groupedData: any = {};
+                  
+                  sambhag.visibleChildren.forEach((child) => {
+                    const jila = child.jilaName || 'Unknown';
+                    const vid = child.vidName || 'Unknown';
+                    const mandal = child.manName || child.mandalName || 'Unknown';
+                    const shakti = child.sakName || child.sakhaName || 'Unknown';
+                    
+                    if (!groupedData[jila]) groupedData[jila] = {};
+                    if (!groupedData[jila][vid]) groupedData[jila][vid] = {};
+                    if (!groupedData[jila][vid][mandal]) groupedData[jila][vid][mandal] = {};
+                    if (!groupedData[jila][vid][mandal][shakti]) groupedData[jila][vid][mandal][shakti] = [];
+                    
+                    groupedData[jila][vid][mandal][shakti].push(child);
+                  });
+
+                  const rows: JSX.Element[] = [];
+                  let rowIndex = 0;
+                  let jilaStartIndex = 0;
+                  let vidStartIndex = 0;
+                  let mandalStartIndex = 0;
+                  let shaktiStartIndex = 0;
+
+                  Object.entries(groupedData).forEach(([jilaName, jilaData]: [string, any]) => {
+                    jilaStartIndex = rowIndex;
+                    let jilaRowCount = 0;
+                    
+                    Object.entries(jilaData).forEach(([vidName, vidData]: [string, any]) => {
+                      vidStartIndex = rowIndex;
+                      let vidRowCount = 0;
+                      
+                      Object.entries(vidData).forEach(([mandalName, mandalData]: [string, any]) => {
+                        mandalStartIndex = rowIndex;
+                        let mandalRowCount = 0;
+                        
+                        Object.entries(mandalData).forEach(([shaktiName, shaktiChildren]: [string, any]) => {
+                          shaktiStartIndex = rowIndex;
+                          const shaktiRowCount = shaktiChildren.length;
+                          
+                          shaktiChildren.forEach((child: VisibleChild, childIndex: number) => {
+                            rows.push(
+                              <tr key={`row-${rowIndex}`} className="hover:bg-gray-50 transition duration-150">
+                                {/* Sambhag Cell */}
+                                {rowIndex === 0 && (
+                                  <td rowSpan={sambhag.visibleChildren.length} className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 text-center font-medium align-middle">
+                                    {sambhag.sambhagName}
+                                  </td>
+                                )}
+                                
+                                {/* Jila Cell */}
+                                {(['vidhansabha', 'mandal', 'shakti', 'booth'] as LevelType[]).includes(upTo) && rowIndex === jilaStartIndex && (
+                                  <td rowSpan={Object.values(jilaData).reduce((sum: number, vd: any) => 
+                                    sum + Object.values(vd).reduce((vSum: number, md: any) => 
+                                      vSum + Object.values(md).reduce((mSum: number, sd: any) => mSum + sd.length, 0), 0), 0
+                                  )} className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 text-center font-medium align-middle">
+                                    {jilaName}
+                                  </td>
+                                )}
+                                
+                                {/* Vidhan Sabha Cell */}
+                                {(['mandal', 'shakti', 'booth'] as LevelType[]).includes(upTo) && rowIndex === vidStartIndex && (
+                                  <td rowSpan={Object.values(vidData).reduce((sum: number, md: any) => 
+                                    sum + Object.values(md).reduce((mSum: number, sd: any) => mSum + sd.length, 0), 0
+                                  )} className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 text-center font-medium align-middle">
+                                    {vidName}
+                                  </td>
+                                )}
+                                
+                                {/* Mandal Cell */}
+                                {(['shakti', 'booth'] as LevelType[]).includes(upTo) && rowIndex === mandalStartIndex && (
+                                  <td rowSpan={Object.values(mandalData).reduce((sum: number, sd: any) => sum + sd.length, 0)} 
+                                      className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 text-center font-medium align-middle">
+                                    {mandalName}
+                                  </td>
+                                )}
+                                
+                                {/* Shakti Cell */}
+                                {upTo === 'booth' && rowIndex === shaktiStartIndex && (
+                                  <td rowSpan={shaktiRowCount} className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 text-center font-medium align-middle">
+                                    {child.sakId} - {shaktiName}
+                                  </td>
+                                )}
+                                
+                                {/* Current Level Data */}
+                                {upTo === 'vidhansabha' && (
+                                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-700">{vidName}</td>
+                                )}
+                                {upTo === 'mandal' && (
+                                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-700">{mandalName}</td>
+                                )}
+                                {upTo === 'shakti' && (
+                                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-700">{child.sakId} - {shaktiName}</td>
+                                )}
+                                {upTo === 'booth' && (
+                                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-700">{child.boothName}</td>
+                                )}
+                                
+                                {/* Count Cells */}
+                                {getRowCounts(child, upTo).map((count, countIndex) => (
+                                  <td key={countIndex} className="px-6 py-4 whitespace-nowrap text-sm text-center text-gray-700">{count}</td>
+                                ))}
+                              </tr>
+                            );
+                            rowIndex++;
+                          });
+                        });
+                      });
+                    });
+                  });
+
+                  return rows;
+                })()}
+
+                {/* 3. Sambhag Summary Row - Only for non-sambhag levels */}
+                {upTo !== 'sambhag' && (
+                  <tr className="font-extrabold border-t border-gray-400 border-b ">
+                    <td className="px-6 py-4 whitespace-nowrap text-base font-bold text-gray-900" colSpan={1}>
+                      Total
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-base text-center font-bold text-gray-900 border-r  border-b border-gray-200">
+                      {sambhag.totalJilas || new Set(sambhag.visibleChildren.map(child => child.jilaName)).size}
+                    </td>
+                    {[...Array(headers.hierarchy.length - 2)].map((_, i) => (
+                      <td key={`total-empty-${i}`} className="px-6 py-4 whitespace-nowrap text-sm text-gray-400 border-r  border-b border-gray-200">
+                        {/* Empty */}
+                      </td>
+                    ))}
+                    {getTotalRowCounts(sambhag, upTo).map((count, index) => (
+                      <td
+                        key={index}
+                        className="px-6 py-4 whitespace-nowrap text-base text-center font-extrabold text-gray-900 border-r  border-b border-gray-200 last:border-r-0"
+                      >
+                        {count}
+                      </td>
+                    ))}
+                  </tr>
+                )}
+                </React.Fragment>
+              ))}
+            </tbody>
+          </table>
+        ) : (
+          <div>
+            {reportData.map((sambhag, sambhagIndex) => (
+              <div key={sambhag.sambhagId} className={`sambhag-page ${sambhagIndex > 0 ? "sambhag-section" : ""}`}>
+
+                {/* Sambhag Header for each page */}
+                <div className="sambhag-header mb-4 p-4 bg-gray-100 border-2 border-gray-400 rounded">
+                  <h2 className="text-xl font-bold text-gray-900 text-center">
+                    संभाग: {sambhag.sambhagId} - {sambhag.sambhagName}
+                  </h2>
+                </div>
+                
+             <table className="min-w-full divide-y divide-gray-400 border-2 border-gray-600">
+                  {/* Table Header for each page */}
+                  <thead className="bg-gray-100 border-b border-gray-600">
+                    <tr>
+                      {headers.hierarchy.map((header, index) => (
+                        <th
+                          key={index}
+                          scope="col"
+                          className="px-6 py-3 text-left text-xs font-bold uppercase tracking-wider text-gray-900 border-r border-gray-300"
+                        >
+                          {header}
+                        </th>
+                      ))}
+                      {headers.counts.map((header, index) => (
+                        <th
+                          key={index}
+                          scope="col"
+                          className="px-6 py-3 text-center text-xs font-bold uppercase tracking-wider text-gray-900 border-r border-gray-300 last:border-r-0"
+                        >
+                          {header}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+
+                  <tbody className="divide-y divide-gray-300">
+
+                    
+                    {/* Visible Children Rows with proper hierarchical grouping */}
+                    {(() => {
+                      if (upTo === 'jila') {
+                        const jilaGroups = sambhag.visibleChildren.reduce((groups: JilaGroups, child, index) => {
+                          const jilaName = child.jilaName || 'Unknown';
+                          if (!groups[jilaName]) groups[jilaName] = [];
+                          groups[jilaName].push({ ...child, originalIndex: index });
+                          return groups;
+                        }, {});
+
+                        let globalIndex = 0;
+                        return Object.entries(jilaGroups).map(([jilaName, jilaChildren]) => {
+                          return jilaChildren.map((child: VisibleChild, jilaIndex: number) => {
+                            const currentGlobalIndex = globalIndex++;
+                            return (
+                              <tr key={currentGlobalIndex} className="hover:bg-gray-50 transition duration-150">
+                                {currentGlobalIndex === 0 && (
+                                  <td rowSpan={sambhag.visibleChildren.length} className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 text-center font-medium align-middle">
+                                    {sambhag.sambhagId} - {sambhag.sambhagName}
+                                  </td>
+                                )}
+                                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-700">{jilaName}</td>
+                                {getRowCounts(child, upTo).map((count, countIndex) => (
+                                  <td key={countIndex} className="px-6 py-4 whitespace-nowrap text-sm text-center text-gray-700">{count}</td>
+                                ))}
+                              </tr>
+                            );
+                          });
+                        }).flat();
+                      }
+
+                        // Create hierarchical structure with proper grouping
+                      const groupedData: any = {};
+                      
+                      sambhag.visibleChildren.forEach((child) => {
+                        const jila = child.jilaName || 'Unknown';
+                        const vid = child.vidName || 'Unknown';
+                        const mandal = child.manName || child.mandalName || 'Unknown';
+                        const shakti = child.sakName || child.sakhaName || 'Unknown';
+                        
+                        if (!groupedData[jila]) groupedData[jila] = {};
+                        if (!groupedData[jila][vid]) groupedData[jila][vid] = {};
+                        if (!groupedData[jila][vid][mandal]) groupedData[jila][vid][mandal] = {};
+                        if (!groupedData[jila][vid][mandal][shakti]) groupedData[jila][vid][mandal][shakti] = [];
+                        
+                        groupedData[jila][vid][mandal][shakti].push(child);
+                      });
+
+                      const rows: JSX.Element[] = [];
+                      let rowIndex = 0;
+                      let jilaStartIndex = 0;
+                      let vidStartIndex = 0;
+                      let mandalStartIndex = 0;
+                      let shaktiStartIndex = 0;
+
+                      Object.entries(groupedData).forEach(([jilaName, jilaData]: [string, any]) => {
+                        jilaStartIndex = rowIndex;
+                        
+                        Object.entries(jilaData).forEach(([vidName, vidData]: [string, any]) => {
+                          vidStartIndex = rowIndex;
+                          
+                          Object.entries(vidData).forEach(([mandalName, mandalData]: [string, any]) => {
+                            mandalStartIndex = rowIndex;
+                            
+                            Object.entries(mandalData).forEach(([shaktiName, shaktiChildren]: [string, any]) => {
+                              shaktiStartIndex = rowIndex;
+                              const shaktiRowCount = shaktiChildren.length;
+                              
+                              shaktiChildren.forEach((child: VisibleChild, childIndex: number) => {
+                                rows.push(
+                                  <tr key={`row-${rowIndex}`} className="hover:bg-gray-50 transition duration-150">
+                                    {/* Sambhag Cell */}
+                                    {rowIndex === 0 && (
+                                      <td rowSpan={sambhag.visibleChildren.length} className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 text-center font-medium align-middle">
+                                        {sambhag.sambhagId} - {sambhag.sambhagName}
+                                      </td>
+                                    )}
+                                    
+                                    {/* Jila Cell */}
+                                    {(['vidhansabha', 'mandal', 'shakti', 'booth'] as LevelType[]).includes(upTo) && rowIndex === jilaStartIndex && (
+                                      <td rowSpan={Object.values(jilaData).reduce((sum: number, vd: any) => 
+                                        sum + Object.values(vd).reduce((vSum: number, md: any) => 
+                                          vSum + Object.values(md).reduce((mSum: number, sd: any) => mSum + sd.length, 0), 0), 0
+                                      )} className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 text-center font-medium align-middle">
+                                        {jilaName}
+                                      </td>
+                                    )}
+                                    
+                                    {/* Vidhan Sabha Cell */}
+                                    {(['mandal', 'shakti', 'booth'] as LevelType[]).includes(upTo) && rowIndex === vidStartIndex && (
+                                      <td rowSpan={Object.values(vidData).reduce((sum: number, md: any) => 
+                                        sum + Object.values(md).reduce((mSum: number, sd: any) => mSum + sd.length, 0), 0
+                                      )} className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 text-center font-medium align-middle">
+                                        {vidName}
+                                      </td>
+                                    )}
+                                    
+                                    {/* Mandal Cell */}
+                                    {(['shakti', 'booth'] as LevelType[]).includes(upTo) && rowIndex === mandalStartIndex && (
+                                      <td rowSpan={Object.values(mandalData).reduce((sum: number, sd: any) => sum + sd.length, 0)} 
+                                          className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 text-center font-medium align-middle">
+                                        {mandalName}
+                                      </td>
+                                    )}
+                                    
+                                    {/* Shakti Cell */}
+                                    {upTo === 'booth' && rowIndex === shaktiStartIndex && (
+                                      <td rowSpan={shaktiRowCount} className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 text-center font-medium align-middle">
+                                        {child.sakId} - {shaktiName}
+                                      </td>
+                                    )}
+                                    
+                                    {/* Current Level Data */}
+                                    {upTo === 'vidhansabha' && (
+                                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-700">{vidName}</td>
+                                    )}
+                                    {upTo === 'mandal' && (
+                                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-700">{mandalName}</td>
+                                    )}
+                                    {upTo === 'shakti' && (
+                                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-700">{child.sakId} - {shaktiName}</td>
+                                    )}
+                                    {upTo === 'booth' && (
+                                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-700">{child.boothName}</td>
+                                    )}
+                                    
+                                    {/* Count Cells */}
+                                    {getRowCounts(child, upTo).map((count, countIndex) => (
+                                      <td key={countIndex} className="px-6 py-4 whitespace-nowrap text-sm text-center text-gray-700">{count}</td>
+                                    ))}
+                                  </tr>
+                                );
+                                rowIndex++;
+                              });
+                            });
+                          });
+                        });
+                      });
+
+                      return rows;
+                    })()}
+
+                    {/* Summary Row */}
+                    <tr className="font-extrabold border-t border-gray-400 border-b ">
+                      <td className="px-6 py-4 whitespace-nowrap text-base font-bold text-gray-900" colSpan={1}>
+                        Total
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-base text-center font-bold text-gray-900 border-r  border-b border-gray-200">
+                        {sambhag.totalJilas || new Set(sambhag.visibleChildren.map(child => child.jilaName)).size}
+                      </td>
+                      {[...Array(headers.hierarchy.length - 2)].map((_, i) => (
+                        <td key={`total-empty-${i}`} className="px-6 py-4 whitespace-nowrap text-sm text-gray-400 border-r  border-b border-gray-200">
+                          {/* Empty */}
+                        </td>
+                      ))}
+                      {getTotalRowCounts(sambhag, upTo).map((count, index) => (
+                        <td
+                          key={index}
+                          className="px-6 py-4 whitespace-nowrap text-base text-center font-extrabold text-gray-900 border-r  border-b border-gray-200 last:border-r-0"
+                        >
+                          {count}
+                        </td>
+                      ))}
+                    </tr>
+                  </tbody>
+                </table>
+              
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default SambhagReportPage;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+.....................................................................
+
+
+
+
+
+
+
+// // SambhagReportPage.jsx
+
+// import React, { useState, useEffect, useRef } from 'react';
+// import { buildReportHierarchy } from '../../../utils/useSambhagHierarchy';
+// import { useLocation } from 'react-router-dom';
+// import axiosInstance from '../../../service/axiosInstance';
+
+// type LevelType = 'sambhag' | 'jila' | 'vidhansabha' | 'mandal' | 'shakti' | 'booth';
+
+// interface VisibleChild {
+//   jilaName?: string;
+//   vidName?: string;
+//   manName?: string;
+//   mandalName?: string;
+//   sakId?: number;
+//   sakName?: string;
+//   sakhaName?: string;
+//   boothName?: string;
+//   totalVidhans?: number;
+//   totalMandals?: number;
+//   totalSakhas?: number;
+//   totalBooths?: number;
+//   originalIndex?: number;
+// }
+
+// interface SambhagData {
+//   sambhagId: string;
+//   sambhagName: string;
+//   totalJilas?: number;
+//   totalVidhans?: number;
+//   totalMandals?: number;
+//   totalSakhas?: number;
+//   totalBooths?: number;
+//   visibleChildren: VisibleChild[];
+// }
+
+// interface ChildData {
+//   jilaName?: string;
+//   vidName?: string;
+//   manName?: string;
+//   mandalName?: string;
+//   sakId?: number;
+//   sakName?: string;
+//   sakhaName?: string;
+//   boothName?: string;
+//   totalVidhans?: number;
+//   totalMandals?: number;
+//   totalSakhas?: number;
+//   totalBooths?: number;
+// }
+
+// interface JilaGroups {
+//   [key: string]: VisibleChild[];
+// }
+
+// // --- Mock Data (Replace with your actual data fetching) ---
+// const mockData = [
+//   // Two distinct Sambhags for page break demonstration
+//   { id: 1, name: "सरगुजा", childId: 1, childName: "मनेद्रगढ़", vidId: 1, vidName: "भरतपुर सोनहत", manId: 1, manName: "कुंवारपुर", sakId: 1, sakName: "कंजिया", btId: 37, btName: "चांटी" },
+//   { id: 1, name: "सरगुजा", childId: 1, childName: "मनेद्रगढ़", vidId: 1, vidName: "भरतपुर सोनहत", manId: 1, manName: "कुंवारपुर", sakId: 1, sakName: "कंजिया", btId: 38, btName: "नयाचांटी" },
+//   { id: 1, name: "सरगुजा", childId: 1, childName: "मनेद्रगढ़", vidId: 2, vidName: "बैकुंठपुर", manId: 2, manName: "मनेन्द्रगढ़", sakId: 2, sakName: "कोरिया", btId: 39, btName: "कोरिया बूथ" },
+//   { id: 2, name: "बिलासपुर", childId: 3, childName: "बिलासपुर जिला", vidId: 4, vidName: "बिलासपुर शहर", manId: 5, manName: "बिलासपुर मंडल", sakId: 6, sakName: "शक्ति A", btId: 43, btName: "बूथ 50" },
+//   { id: 2, name: "बिलासपुर", childId: 3, childName: "बिलासपुर जिला", vidId: 4, vidName: "बिलासपुर शहर", manId: 5, manName: "बिलासपुर मंडल", sakId: 7, sakName: "शक्ति B", btId: 44, btName: "बूथ 51" },
+// ];
+
+// // Removed gradeColors as requested
+
+// const SambhagReportPage = () => {
+//   const location = useLocation();
+//   const navigatedData = (location.state || mockData);
+//   const data = navigatedData || mockData;
+
+//   const [reportData, setReportData] = useState<SambhagData[]>([]);
+//   const [upTo, setUpTo] = useState<LevelType>('sambhag');
+//   const [isExporting, setIsExporting] = useState(false);
+//   const reportRef = useRef<HTMLDivElement>(null);
+
+//   useEffect(() => {
+//     const summary: SambhagData[] = buildReportHierarchy(data, upTo);
+//     console.log('Report Data:', summary);
+//     console.log('Selected Level:', upTo);
+//     setReportData(summary);
+//   }, [upTo, data]);
+
+//   const exportPdf = async () => {
+//     if (isExporting) return;
+    
+//     try {
+//       setIsExporting(true);
+//       const reportElement = reportRef.current;
+//       if (!reportElement) return;
+      
+//       const htmlContent = `
+//         <!DOCTYPE html>
+//         <html>
+//         <head>
+//           <meta charset="UTF-8">
+//           <style>
+//             * { margin: 0; padding: 0; box-sizing: border-box; }
+//             body { font-family: Arial, sans-serif; padding: 20px; }
+//             table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+//             th, td { border: 2px solid #000; padding: 15px 10px; text-align: left; font-size: 14px; line-height: 1.5; }
+//             th { font-weight: bold; text-align: center; font-size: 16px; }
+//             .text-center { text-align: center; }
+//             .font-bold { font-weight: bold; }
+//             .print-header { font-size: 22px; font-weight: bold; margin-bottom: 25px; text-align: center; }
+//             .sambhag-page { page-break-before: always; }
+//             .sambhag-page:first-child { page-break-before: auto; }
+//             .sambhag-header-print { 
+//               font-size: 18px; 
+//               font-weight: bold; 
+//               text-align: center; 
+//               margin-bottom: 15px; 
+//               padding: 10px; 
+//               background-color: #f3f4f6; 
+//               border: 2px solid #374151; 
+//             }
+//             table { border: 2px solid #000 !important; }
+//             tbody tr:last-child td { border-bottom: 2px solid #000 !important; }
+//             @page { size: A4 landscape; margin: 0.5in; }
+//           </style>
+//         </head>
+//         <body>
+//           <div class="print-header">📊 संभाग बूथ रिपोर्ट (Sambhag Booth Report)</div>
+//           ${(reportElement as HTMLElement).innerHTML.replace(/sambhag-header/g, 'sambhag-header-print')}
+//         </body>
+//         </html>
+//       `;
+      
+//       const response = await axiosInstance.post('/generate-pdf', {
+//         html: htmlContent,
+//         filename: `Report_${upTo}_${new Date().toISOString().slice(0, 10)}.pdf`
+//       }, {
+//         responseType: 'blob'
+//       });
+      
+//       const blob = new Blob([response.data], { type: 'application/pdf' });
+//       const url = window.URL.createObjectURL(blob);
+//       const a = document.createElement('a');
+//       a.href = url;
+//       a.download = `Report_${upTo}_${new Date().toISOString().slice(0, 10)}.pdf`;
+//       document.body.appendChild(a);
+//       a.click();
+//       window.URL.revokeObjectURL(url);
+//       document.body.removeChild(a);
+//     } catch (error) {
+//       console.error('Error generating PDF:', error);
+//     } finally {
+//       setIsExporting(false);
+//     }
+//   };
+
+//   // --- Table Headers based on 'upTo' level ---
+//   const getTableHeaders = () => {
+//     const baseHeaders = {
+//       sambhag: 'संभाग (Sambhag)',
+//       jila: 'जिला (Jila)',
+//       vidhansabha: 'विधानसभा (Vidhan Sabha)',
+//       mandal: 'मंडल (Mandal)',
+//       shakti: 'शक्ति (shakti)',
+//       booth: 'बूथ (Booth)',
+//     };
+
+//     // Dynamic Hierarchy Headers
+//     const hierarchyHeaders = [baseHeaders.sambhag];
+//     if (upTo === 'jila' || upTo === 'vidhansabha' || upTo === 'mandal' || upTo === 'shakti' || upTo === 'booth') {
+//       hierarchyHeaders.push(baseHeaders.jila);
+//     }
+//     if (upTo === 'vidhansabha' || upTo === 'mandal' || upTo === 'shakti' || upTo === 'booth') {
+//       hierarchyHeaders.push(baseHeaders.vidhansabha);
+//     }
+//     if (upTo === 'mandal' || upTo === 'shakti' || upTo === 'booth') {
+//       hierarchyHeaders.push(baseHeaders.mandal);
+//     }
+//     if (upTo === 'shakti' || upTo === 'booth') {
+//       hierarchyHeaders.push(baseHeaders.shakti); // Corrected baseHeaders key
+//     }
+//     if (upTo === 'booth') {
+//       hierarchyHeaders.push(baseHeaders.booth);
+//     }
+
+//     // Dynamic Count Headers (Lower Levels only)
+//     const countHeadersMap: Record<LevelType, string[]> = {
+//       sambhag: ['जिले (Jilas)', 'विधानसभा (Vidhan)', 'मंडल (Mandal)', 'शक्ति (shakti)', 'बूथ (Booth)'],
+//       jila: ['विधानसभा (Vidhan)', 'मंडल (Mandal)', 'शक्ति (shakti)', 'बूथ (Booth)'],
+//       vidhansabha: ['मंडल (Mandal)', 'शक्ति (shakti)', 'बूथ (Booth)'],
+//       mandal: ['शक्ति (shakti)', 'बूथ (Booth)'],
+//       shakti: ['बूथ (Booth)'],
+//       booth: [], // No further counts
+//     };
+
+//     return {
+//       hierarchy: hierarchyHeaders,
+//       counts: countHeadersMap[upTo] || [],
+//     };
+//   };
+
+//   const headers = getTableHeaders();
+
+//   // --- Dynamic Row Counts ---
+//   const getRowCounts = (item: VisibleChild | SambhagData, level: LevelType): number[] => {
+//     // Note: The mock data doesn't provide these total counts, so they're assumed to exist on the 'item' object after 'buildReportHierarchy' runs.
+//     switch (level) {
+//       case 'sambhag':
+//         return [(item as SambhagData).totalJilas || 0, item.totalVidhans || 0, item.totalMandals || 0, item.totalSakhas || 0, item.totalBooths || 0];
+//       case 'jila':
+//         return [item.totalVidhans || 0, item.totalMandals || 0, item.totalSakhas || 0, item.totalBooths || 0];
+//       case 'vidhansabha':
+//         return [item.totalMandals || 0, item.totalSakhas || 0, item.totalBooths || 0];
+//       case 'mandal':
+//         return [item.totalSakhas || 0, item.totalBooths || 0];
+//       case 'shakti':
+//         return [item.totalBooths || 0];
+//       default: // booth
+//         return [];
+//     }
+//   };
+
+//   // --- Get counts for total rows including current level counts ---
+//   const getTotalRowCounts = (sambhag: SambhagData, level: LevelType): number[] => {
+//     const counts: number[] = [];
+    
+//     switch (level) {
+//       case 'sambhag':
+//         counts.push(sambhag.totalJilas || 0);
+//         counts.push(sambhag.totalVidhans || 0);
+//         counts.push(sambhag.totalMandals || 0);
+//         counts.push(sambhag.totalSakhas || 0);
+//         counts.push(sambhag.totalBooths || 0);
+//         break;
+//       case 'jila':
+//         counts.push(sambhag.totalVidhans || 0);
+//         counts.push(sambhag.totalMandals || 0);
+//         counts.push(sambhag.totalSakhas || 0);
+//         counts.push(sambhag.totalBooths || 0);
+//         break;
+//       case 'vidhansabha':
+//         counts.push(sambhag.totalMandals || 0);
+//         counts.push(sambhag.totalSakhas || 0);
+//         counts.push(sambhag.totalBooths || 0);
+//         break;
+//       case 'mandal':
+//         counts.push(sambhag.totalSakhas || 0);
+//         counts.push(sambhag.totalBooths || 0);
+//         break;
+//       case 'shakti':
+//         counts.push(sambhag.totalBooths || 0);
+//         break;
+//       default: // booth
+//         break;
+//     }
+//     // switch (level) {
+//     //   case 'sambhag':
+//     //     counts.push(sambhag.totalJilas || 0);
+//     //     counts.push(sambhag.totalVidhans || 0);
+//     //     counts.push(sambhag.totalMandals || 0);
+//     //     counts.push(sambhag.totalSakhas || 0);
+//     //     counts.push(sambhag.totalBooths || 0);
+//     //     break;
+//     //   case 'jila':
+//     //     counts.push(sambhag.totalVidhans || sambhag.visibleChildren.length);
+//     //     counts.push(sambhag.totalMandals || 0);
+//     //     counts.push(sambhag.totalSakhas || 0);
+//     //     counts.push(sambhag.totalBooths || 0);
+//     //     break;
+//     //   case 'vidhansabha':
+//     //     counts.push(sambhag.totalMandals || sambhag.visibleChildren.length);
+//     //     counts.push(sambhag.totalSakhas || 0);
+//     //     counts.push(sambhag.totalBooths || 0);
+//     //     break;
+//     //   case 'mandal':
+//     //     counts.push(sambhag.totalSakhas || sambhag.visibleChildren.length);
+//     //     counts.push(sambhag.totalBooths || 0);
+//     //     break;
+//     //   case 'shakti':
+//     //     counts.push(sambhag.totalBooths || sambhag.visibleChildren.length);
+//     //     break;
+//     //   default: // booth
+//     //     break;
+//     // }
+    
+//     return counts;
+//   };
+
+//   // --- Helper function to get the displayed name(s) for a child row ---
+//   const getChildNames = (child: ChildData, level: LevelType): string[] => {
+//     let names: string[] = [];
+//     // Determine the names for the row based on the 'upTo' level
+//     if (level === 'jila') {
+//       names = [child.jilaName || ''];
+//     } else if (level === 'vidhansabha') {
+//       names = [child.jilaName || '', child.vidName || ''];
+//     } else if (level === 'mandal') {
+//       names = [child.jilaName || '', child.vidName || '', child.manName || ''];
+//     } else if (level === 'shakti') {
+//       names = [child.jilaName || '', child.vidName || '', child.mandalName || '', (child.sakId || '') + ' - ' + (child.sakName || '')];
+//     } else if (level === 'booth') {
+//       names = [child.jilaName || '', child.vidName || '', child.mandalName || '', child.sakhaName || '', child.boothName || ''];
+//     }
+//     return names;
+//   };
+  
+
+//   return (
+//     // Applied simple styling for print
+//     <div className="p-8 bg-white min-h-screen">
+//      <style>
+//   {`
+//     /* 1. Global Print Settings for A4 Landscape */
+//     @page {
+//       size: A4 landscape;
+//       margin: 0.5in;
+//     }
+    
+//     body {
+//       /* Forces background colors/shading to be printed */
+//       -webkit-print-color-adjust: exact;
+//       print-color-adjust: exact;
+//       font-family: Arial, sans-serif;
+//     }
+    
+//     /* 2. Table Structure and Borders */
+//     table {
+//       width: 100% !important;
+//       border-collapse: collapse !important;
+//       page-break-inside: auto !important;
+//       /* Main outer border - Apply this to the table element directly in JSX 
+//          or ensure it's defined here if not in JSX */
+//       border: 2px solid #000; 
+//       margin-bottom: 20px; /* Space between different Sambhag tables */
+//     }
+    
+//     tbody {
+//       page-break-inside: auto !important;
+//     }
+    
+//     tr {
+//       page-break-inside: avoid !important;
+//       page-break-after: auto;
+//     }
+    
+//     /* Internal cell borders */
+//     th, td {
+//       border: 1px solid #000 !important; /* Use 1px for internal lines */
+//       padding: 12px 8px !important;
+//       font-size: 14px !important;
+//       line-height: 1.4 !important;
+//       text-align: left;
+//     }
+    
+//     th {
+//       font-weight: bold !important;
+//       text-align: center;
+//     }
+    
+//     /* 3. Hierarchy and Page Breaks */
+//     .sambhag-page {
+//       page-break-inside: auto !important;
+//       overflow: visible !important;
+//     }
+    
+//     /* Force new page for every subsequent Sambhag table */
+//     .sambhag-page:not(:first-child) { 
+//       page-break-before: always !important; 
+//     }
+
+//     /* 🎯 FIX: Ensure the bottom border of the last row on each table is strong */
+//     .sambhag-page table {
+//       border: 2px solid #000 !important;
+//       border-bottom: 2px solid #000 !important;
+//     }
+    
+//     .sambhag-page tbody tr:last-child td {
+//       border-bottom: 2px solid #000 !important;
+//     }
+    
+//     /* Additional fix for table closure */
+//     .sambhag-page table tbody {
+//       border-bottom: 2px solid #000 !important;
+//     }
+    
+//     /* Sambhag header styling for print */
+//     .sambhag-header {
+//       page-break-after: avoid !important;
+//       margin-bottom: 10px !important;
+//     }
+
+//     /* 4. Utility Classes (for print consistency) */
+//     .print-header {
+//       font-size: 22px !important;
+//       font-weight: bold;
+//       margin-bottom: 25px;
+//       text-align: center;
+//     }
+    
+//     /* Hide UI elements during print */
+//     @media print {
+//       .no-print {
+//         display: none !important;
+//       }
+//     }
+//   `}
+// </style>
+     
+//       <header className="flex justify-between items-center mb-6 border-b border-gray-300 pb-4 no-print">
+//   <h1 className="text-3xl font-bold text-gray-800">📊 संभाग  रिपोर्ट (Sambhag  Report)</h1>
+//   <div className="flex space-x-4">
+//     {/* Level Selector */}
+//     <select
+//       value={upTo}
+//       onChange={(e) => setUpTo(e.target.value as LevelType)}
+//       className="p-2 border border-gray-400 rounded-md shadow-sm"
+//     >
+//       <option value="sambhag">संभाग तक (Up to Sambhag)</option>
+//       <option value="jila">जिला तक (Up to Jila)</option>
+//       <option value="vidhansabha">विधानसभा तक (Up to Vidhan Sabha)</option>
+//       <option value="mandal">मंडल तक (Up to Mandal)</option>
+//       <option value="shakti">शक्ति तक (Up to shakti)</option>
+//       <option value="booth">बूथ तक (Up to Booth)</option>
+//     </select>
+
+//     {/* PDF Export Button */}
+//     <button
+//       onClick={exportPdf}
+//       disabled={isExporting}
+//       className={`px-4 py-2 font-semibold rounded-md shadow-md transition duration-300 ${
+//         isExporting 
+//           ? 'bg-gray-400 text-gray-600 cursor-not-allowed' 
+//           : 'bg-gray-700 text-white hover:bg-gray-800'
+//       }`}
+//     >
+//       {isExporting ? '⏳ Generating...' : '⬇️ Export to PDF'}
+//     </button>
+//   </div>
+// </header>
+
+
+//       <div ref={reportRef} className="shadow-lg rounded-lg overflow-hidden border border-gray-400">
+//         {upTo === 'sambhag' ? (
+//           <table className="min-w-full divide-y divide-gray-300 border border-gray-400">
+//             {/* Table Header: Displayed at the top of the first page */}
+//             <thead className="bg-gray-100 border-b border-gray-400">
+//               <tr>
+//                 {/* Hierarchy Headers (Based on 'upTo') */}
+//                 {headers.hierarchy.map((header, index) => (
+//                   <th
+//                     key={index}
+//                     scope="col"
+//                     className="px-6 py-3 text-left text-xs font-bold uppercase tracking-wider text-gray-900 border-r border-gray-300"
+//                   >
+//                     {header}
+//                   </th>
+//                 ))}
+
+//                 {/* Count Headers (Lower Levels) */}
+//                 {headers.counts.map((header, index) => (
+//                   <th
+//                     key={index}
+//                     scope="col"
+//                     className="px-6 py-3 text-center text-xs font-bold uppercase tracking-wider text-gray-900 border-r border-gray-300 last:border-r-0"
+//                   >
+//                     {header}
+//                   </th>
+//                 ))}
+//               </tr>
+//             </thead>
+
+//             <tbody className="divide-y divide-gray-300">
+//               {reportData.map((sambhag) => (
+//                 // The key element for the page break
+//                 <React.Fragment key={sambhag.sambhagId}>
+
+//                 {/* 1. Sambhag Row - Show as header for non-sambhag levels, as summary for sambhag level */}
+//                 {upTo === 'sambhag' ? (
+//                   <tr className="font-extrabold border-t-4 border-black hover:bg-gray-100 transition duration-150">
+//                     <td className="px-6 py-4 whitespace-nowrap text-lg text-gray-900 border-r  border-b border-gray-200" colSpan={headers.hierarchy.length}>
+//                       {sambhag.sambhagId} - {sambhag.sambhagName}
+//                     </td>
+//                     {getRowCounts(sambhag, 'sambhag').slice(headers.hierarchy.length - 1).map((count, index) => (
+//                       <td
+//                         key={index}
+//                         className="px-6 py-4 whitespace-nowrap text-sm text-center font-extrabold text-gray-900 bg-orange-100 border-r  border-b border-gray-200 last:border-r-0"
+//                       >
+//                         {count}
+//                       </td>
+//                     ))}
+//                   </tr>
+//                 ) : (
+//                   <tr className="sambhag-section bg-gray-200 border-t-4 border-black">
+//                     <td className="px-6 py-4 whitespace-nowrap text-lg font-bold text-gray-900 border-r border-b border-gray-200" colSpan={headers.hierarchy.length + headers.counts.length}>
+//                       {sambhag.sambhagId} - {sambhag.sambhagName}
+//                     </td>
+//                   </tr>
+//                 )}
+
+//                 {/* 2. Visible Children Rows (Jila, Vidhansabha, Mandal, Sakha, or Booth) */}
+//                 {(() => {
+//                   // Group children by jila and vidhansabha for row spanning
+//                   const jilaGroups = sambhag.visibleChildren.reduce((groups: any, child, index) => {
+//                     const jilaName = child.jilaName || 'Unknown';
+//                     if (!groups[jilaName]) {
+//                       groups[jilaName] = { children: [], vidGroups: {} };
+//                     }
+//                     groups[jilaName].children.push({ ...child, originalIndex: index });
+                    
+//                     // Group by vidhansabha within jila
+//                     const vidName = child.vidName || 'Unknown';
+//                     if (!groups[jilaName].vidGroups[vidName]) {
+//                       groups[jilaName].vidGroups[vidName] = [];
+//                     }
+//                     groups[jilaName].vidGroups[vidName].push({ ...child, originalIndex: index });
+//                     return groups;
+//                   }, {});
+
+//                   let globalIndex = 0;
+//                   return Object.entries(jilaGroups).map(([jilaName, jilaData]: [string, any]) => {
+//                     let jilaRowIndex = 0;
+                    
+//                     return Object.entries(jilaData.vidGroups).map(([vidName, vidChildren]: [string, any]) => {
+//                       return vidChildren.map((child: VisibleChild, vidIndex: number) => {
+//                         const rowNames = getChildNames(child, upTo);
+//                         const rowCounts = getRowCounts(child, upTo);
+//                         const currentGlobalIndex = globalIndex++;
+//                         const currentJilaRowIndex = jilaRowIndex++;
+
+//                         return (
+//                           <tr key={currentGlobalIndex} className="hover:bg-gray-50 transition duration-150">
+//                             {/* Sambhag Cell (show only once with rowspan) */}
+//                             {currentGlobalIndex === 0 && (
+//                               <td 
+//                                 rowSpan={sambhag.visibleChildren.length}
+//                                 className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 text-center font-medium align-middle"
+//                               >
+//                                 {sambhag.sambhagName}
+//                               </td>
+//                             )}
+
+//                             {/* Jila Cell (show only once per jila group with rowspan) */}
+//                             {(['vidhansabha', 'mandal', 'shakti', 'booth'] as LevelType[]).includes(upTo) && currentJilaRowIndex === 0 && (
+//                               <td 
+//                                 rowSpan={jilaData.children.length}
+//                                 className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 text-center font-medium align-middle"
+//                               >
+//                                 {jilaName}
+//                               </td>
+//                             )}
+
+//                             {/* For jila level, show jila name normally */}
+//                             {upTo === 'jila' && (
+//                               <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-700 border-r border-b border-gray-200">
+//                                 {jilaName}
+//                               </td>
+//                             )}
+
+//                             {/* Vidhansabha Cell (show only once per vidhansabha group with rowspan) */}
+//                             {(['mandal', 'shakti', 'booth'] as LevelType[]).includes(upTo) && vidIndex === 0 && (
+//                               <td 
+//                                 rowSpan={vidChildren.length}
+//                                 className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 text-center font-medium align-middle"
+//                               >
+//                                 {vidName}
+//                               </td>
+//                             )}
+
+//                             {/* For vidhansabha level, show vidhansabha name normally */}
+//                             {upTo === 'vidhansabha' && (
+//                               <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-700 border-r border-b border-gray-200">
+//                                 {vidName}
+//                               </td>
+//                             )}
+
+//                             {/* Remaining hierarchy cells */}
+//                             {upTo === 'mandal' && (
+//                               <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-700 border-r border-b border-gray-200">
+//                                 {child.manName || ''}
+//                               </td>
+//                             )}
+//                             {upTo === 'shakti' && (
+//                               <>
+//                                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-700 border-r border-b border-gray-200">
+//                                   {child.mandalName || ''}
+//                                 </td>
+//                                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-700 border-r border-b border-gray-200">
+//                                   {(child.sakId || '') + ' - ' + (child.sakName || '')}
+//                                 </td>
+//                               </>
+//                             )}
+//                             {upTo === 'booth' && (
+//                               <>
+//                                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-700 border-r border-b border-gray-200">
+//                                   {child.mandalName || ''}
+//                                 </td>
+//                                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-700 border-r border-b border-gray-200">
+//                                   {child.sakhaName || ''}
+//                                 </td>
+//                                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-700 border-r border-b border-gray-200">
+//                                   {child.boothName || ''}
+//                                 </td>
+//                               </>
+//                             )}
+
+//                             {/* Count Cells */}
+//                             {rowCounts.map((count, countIndex) => (
+//                               <td
+//                                 key={countIndex}
+//                                 className="px-6 py-4 whitespace-nowrap text-sm text-center text-gray-700 border-r border-b border-gray-200 last:border-r-0"
+//                               >
+//                                 {count}
+//                               </td>
+//                             ))}
+//                           </tr>
+//                         )
+//                       });
+//                     }).flat();
+//                   }).flat();
+//                 })()}
+
+//                 {/* 3. Sambhag Summary Row - Only for non-sambhag levels */}
+//                 {upTo !== 'sambhag' && (
+//                   <tr className="font-extrabold border-t border-gray-400 border-b ">
+//                     <td className="px-6 py-4 whitespace-nowrap text-base font-bold text-gray-900" colSpan={1}>
+//                       Total
+//                     </td>
+//                     {/* Hierarchy columns with totals */}
+//                     {headers.hierarchy.slice(1).map((header, index) => {
+//                       let value = 0;
+//                       if (index === 0) { // Jila column
+//                         value = sambhag.totalJilas || new Set(sambhag.visibleChildren.map(child => child.jilaName)).size;
+//                       } else if (index === 1 && upTo !== 'jila') { // Vidhansabha column
+//                         value = sambhag.totalVidhans || (upTo === 'vidhansabha' ? sambhag.visibleChildren.length : 0);
+//                       } else if (index === 2 && ['mandal', 'shakti', 'booth'].includes(upTo)) { // Mandal column
+//                         value = sambhag.totalMandals || (upTo === 'mandal' ? sambhag.visibleChildren.length : 0);
+//                       } else if (index === 3 && ['shakti', 'booth'].includes(upTo)) { // Shakti column
+//                         value = sambhag.totalSakhas || (upTo === 'shakti' ? sambhag.visibleChildren.length : 0);
+//                       } else if (index === 4 && upTo === 'booth') { // Booth column
+//                         value = sambhag.visibleChildren.length;
+//                       }
+//                       return (
+//                         <td key={index} className="px-6 py-4 whitespace-nowrap text-base text-center font-bold text-gray-900 border-r border-b border-gray-200">
+//                           {value}
+//                         </td>
+//                       );
+//                     })}
+//                     {/* Count columns */}
+//                     {getTotalRowCounts(sambhag, upTo).map((count, index) => (
+//                       <td
+//                         key={index}
+//                         className="px-6 py-4 whitespace-nowrap text-base text-center font-extrabold text-gray-900 border-r  border-b border-gray-200 last:border-r-0"
+//                       >
+//                         {count}
+//                       </td>
+//                     ))}
+//                   </tr>
+//                 )}
+//                 </React.Fragment>
+//               ))}
+//             </tbody>
+//           </table>
+//         ) : (
+//           <div>
+//             {reportData.map((sambhag, sambhagIndex) => (
+//               <div key={sambhag.sambhagId} className={`sambhag-page ${sambhagIndex > 0 ? "sambhag-section" : ""}`}>
+
+//                 {/* Sambhag Header for each page */}
+//                 <div className="sambhag-header mb-4 p-4 bg-gray-100 border-2 border-gray-400 rounded">
+//                   <h2 className="text-xl font-bold text-gray-900 text-center">
+//                     संभाग: {sambhag.sambhagId} - {sambhag.sambhagName}
+//                   </h2>
+//                 </div>
+                
+//              <table className="min-w-full divide-y divide-gray-400 border-2 border-gray-600">
+//                   {/* Table Header for each page */}
+//                   <thead className="bg-gray-100 border-b border-gray-600">
+//                     <tr>
+//                       {headers.hierarchy.map((header, index) => (
+//                         <th
+//                           key={index}
+//                           scope="col"
+//                           className="px-6 py-3 text-left text-xs font-bold uppercase tracking-wider text-gray-900 border-r border-gray-300"
+//                         >
+//                           {header}
+//                         </th>
+//                       ))}
+//                       {headers.counts.map((header, index) => (
+//                         <th
+//                           key={index}
+//                           scope="col"
+//                           className="px-6 py-3 text-center text-xs font-bold uppercase tracking-wider text-gray-900 border-r border-gray-300 last:border-r-0"
+//                         >
+//                           {header}
+//                         </th>
+//                       ))}
+//                     </tr>
+//                   </thead>
+
+//                   <tbody className="divide-y divide-gray-300">
+
+                    
+//                     {/* Visible Children Rows */}
+//                     {(() => {
+//                       // Group children by jila and vidhansabha for row spanning
+//                       const jilaGroups = sambhag.visibleChildren.reduce((groups: any, child, index) => {
+//                         const jilaName = child.jilaName || 'Unknown';
+//                         if (!groups[jilaName]) {
+//                           groups[jilaName] = { children: [], vidGroups: {} };
+//                         }
+//                         groups[jilaName].children.push({ ...child, originalIndex: index });
+                        
+//                         // Group by vidhansabha within jila
+//                         const vidName = child.vidName || 'Unknown';
+//                         if (!groups[jilaName].vidGroups[vidName]) {
+//                           groups[jilaName].vidGroups[vidName] = [];
+//                         }
+//                         groups[jilaName].vidGroups[vidName].push({ ...child, originalIndex: index });
+//                         return groups;
+//                       }, {});
+
+//                       let globalIndex = 0;
+//                       return Object.entries(jilaGroups).map(([jilaName, jilaData]: [string, any]) => {
+//                         let jilaRowIndex = 0;
+                        
+//                         return Object.entries(jilaData.vidGroups).map(([vidName, vidChildren]: [string, any]) => {
+//                           return vidChildren.map((child: VisibleChild, vidIndex: number) => {
+//                             const rowCounts = getRowCounts(child, upTo);
+//                             const currentGlobalIndex = globalIndex++;
+//                             const currentJilaRowIndex = jilaRowIndex++;
+
+//                             return (
+//                               <tr key={currentGlobalIndex} className="hover:bg-gray-50 transition duration-150">
+//                                 {/* Sambhag Cell (show only once with rowspan) */}
+//                                 {currentGlobalIndex === 0 && (
+//                                   <td 
+//                                     rowSpan={sambhag.visibleChildren.length}
+//                                     className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 text-center font-medium align-middle"
+//                                   >
+//                                     {sambhag.sambhagId} - {sambhag.sambhagName}
+//                                   </td>
+//                                 )}
+
+//                                 {/* Jila Cell (show only once per jila group with rowspan) */}
+//                                 {(['vidhansabha', 'mandal', 'shakti', 'booth'] as LevelType[]).includes(upTo) && currentJilaRowIndex === 0 && (
+//                                   <td 
+//                                     rowSpan={jilaData.children.length}
+//                                     className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 text-center font-medium align-middle"
+//                                   >
+//                                     {jilaName}
+//                                   </td>
+//                                 )}
+
+//                                 {/* For jila level, show jila name normally */}
+//                                 {upTo === 'jila' && (
+//                                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-700 border-r border-b border-gray-200">
+//                                     {jilaName}
+//                                   </td>
+//                                 )}
+
+//                                 {/* Vidhansabha Cell (show only once per vidhansabha group with rowspan) */}
+//                                 {(['mandal', 'shakti', 'booth'] as LevelType[]).includes(upTo) && vidIndex === 0 && (
+//                                   <td 
+//                                     rowSpan={vidChildren.length}
+//                                     className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 text-center font-medium align-middle"
+//                                   >
+//                                     {vidName}
+//                                   </td>
+//                                 )}
+
+//                                 {/* For vidhansabha level, show vidhansabha name normally */}
+//                                 {upTo === 'vidhansabha' && (
+//                                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-700 border-r border-b border-gray-200">
+//                                     {vidName}
+//                                   </td>
+//                                 )}
+
+//                                 {/* Remaining hierarchy cells */}
+//                                 {upTo === 'mandal' && (
+//                                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-700 border-r border-b border-gray-200">
+//                                     {child.manName || ''}
+//                                   </td>
+//                                 )}
+//                                 {upTo === 'shakti' && (
+//                                   <>
+//                                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-700 border-r border-b border-gray-200">
+//                                       {child.mandalName || ''}
+//                                     </td>
+//                                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-700 border-r border-b border-gray-200">
+//                                       {(child.sakId || '') + ' - ' + (child.sakName || '')}
+//                                     </td>
+//                                   </>
+//                                 )}
+//                                 {upTo === 'booth' && (
+//                                   <>
+//                                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-700 border-r border-b border-gray-200">
+//                                       {child.mandalName || ''}
+//                                     </td>
+//                                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-700 border-r border-b border-gray-200">
+//                                       {child.sakhaName || ''}
+//                                     </td>
+//                                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-700 border-r border-b border-gray-200">
+//                                       {child.boothName || ''}
+//                                     </td>
+//                                   </>
+//                                 )}
+
+//                                 {/* Count Cells */}
+//                                 {rowCounts.map((count, countIndex) => (
+//                                   <td
+//                                     key={countIndex}
+//                                     className="px-6 py-4 whitespace-nowrap text-sm text-center text-gray-700 border-r border-b border-gray-200 last:border-r-0"
+//                                   >
+//                                     {count}
+//                                   </td>
+//                                 ))}
+//                               </tr>
+//                             )
+//                           });
+//                         }).flat();
+//                       }).flat();
+//                     })()}
+
+//                     {/* Summary Row */}
+//                     <tr className="font-extrabold border-t border-gray-400 border-b ">
+//                       <td className="px-6 py-4 whitespace-nowrap text-base font-bold text-gray-900" colSpan={1}>
+//                         Total
+//                       </td>
+//                       {/* Hierarchy columns with totals */}
+//                       {headers.hierarchy.slice(1).map((header, index) => {
+//                         let value = 0;
+//                         if (index === 0) { // Jila column
+//                           value = sambhag.totalJilas || new Set(sambhag.visibleChildren.map(child => child.jilaName)).size;
+//                         } else if (index === 1 && upTo !== 'jila') { // Vidhansabha column
+//                           value = sambhag.totalVidhans || (upTo === 'vidhansabha' ? sambhag.visibleChildren.length : 0);
+//                         } else if (index === 2 && ['mandal', 'shakti', 'booth'].includes(upTo)) { // Mandal column
+//                           value = sambhag.totalMandals || (upTo === 'mandal' ? sambhag.visibleChildren.length : 0);
+//                         } else if (index === 3 && ['shakti', 'booth'].includes(upTo)) { // Shakti column
+//                           value = sambhag.totalSakhas || (upTo === 'shakti' ? sambhag.visibleChildren.length : 0);
+//                         } else if (index === 4 && upTo === 'booth') { // Booth column
+//                           value = sambhag.visibleChildren.length;
+//                         }
+//                         return (
+//                           <td key={index} className="px-6 py-4 whitespace-nowrap text-base text-center font-bold text-gray-900 border-r border-b border-gray-200">
+//                             {value}
+//                           </td>
+//                         );
+//                       })}
+//                       {/* Count columns */}
+//                       {getTotalRowCounts(sambhag, upTo).map((count, index) => (
+//                         <td
+//                           key={index}
+//                           className="px-6 py-4 whitespace-nowrap text-base text-center font-extrabold text-gray-900 border-r  border-b border-gray-200 last:border-r-0"
+//                         >
+//                           {count}
+//                         </td>
+//                       ))}
+//                     </tr>
+//                   </tbody>
+//                 </table>
+              
+//               </div>
+//             ))}
+//           </div>
+//         )}
+//       </div>
+//     </div>
+//   );
+// };
+
+// export default SambhagReportPage;
+
+
+
+
+
+
+
+
+
+// SambhagReportPage.jsx
+
+import React, { useState, useEffect, useRef } from 'react';
+import { useLocation } from 'react-router-dom';
+import axiosInstance from '../../../service/axiosInstance';
+// Assuming this utility is correctly implemented and available
+import { buildReportHierarchy } from '../../../utils/useSambhagHierarchy'; 
+
+// --- Type Definitions (Kept as is) ---
+type LevelType = 'sambhag' | 'jila' | 'vidhansabha' | 'mandal' | 'shakti' | 'booth';
+
+interface VisibleChild {
+  jilaName?: string;
+  vidName?: string;
+  manName?: string;
+  mandalName?: string;
+  sakId?: number;
+  sakName?: string;
+  sakhaName?: string;
+  boothName?: string;
+  totalVidhans?: number;
+  totalMandals?: number;
+  totalSakhas?: number;
+  totalBooths?: number;
+  originalIndex?: number;
+}
+
+interface SambhagData {
+  sambhagId: string;
+  sambhagName: string;
+  totalJilas?: number;
+  totalVidhans?: number;
+  totalMandals?: number;
+  totalSakhas?: number;
+  totalBooths?: number;
+  visibleChildren: VisibleChild[];
+}
+
+interface ChildData {
+  jilaName?: string;
+  vidName?: string;
+  manName?: string;
+  mandalName?: string;
+  sakId?: number;
+  sakName?: string;
+  sakhaName?: string;
+  boothName?: string;
+  totalVidhans?: number;
+  totalMandals?: number;
+  totalSakhas?: number;
+  totalBooths?: number;
+}
+
+// --- Mock Data (Kept as is for demonstration) ---
+const mockData = [
+  // Two distinct Sambhags for page break demonstration
+  { id: 1, name: "सरगुजा", childId: 1, childName: "मनेद्रगढ़", vidId: 1, vidName: "भरतपुर सोनहत", manId: 1, manName: "कुंवारपुर", sakId: 1, sakName: "कंजिया", btId: 37, btName: "चांटी" },
+  { id: 1, name: "सरगुजा", childId: 1, childName: "मनेद्रगढ़", vidId: 1, vidName: "भरतपुर सोनहत", manId: 1, manName: "कुंवारपुर", sakId: 1, sakName: "कंजिया", btId: 38, btName: "नयाचांटी" },
+  { id: 1, name: "सरगुजा", childId: 1, childName: "मनेद्रगढ़", vidId: 2, vidName: "बैकुंठपुर", manId: 2, manName: "मनेन्द्रगढ़", sakId: 2, sakName: "कोरिया", btId: 39, btName: "कोरिया बूथ" },
+  { id: 2, name: "बिलासपुर", childId: 3, childName: "बिलासपुर जिला", vidId: 4, vidName: "बिलासपुर शहर", manId: 5, manName: "बिलासपुर मंडल", sakId: 6, sakName: "शक्ति A", btId: 43, btName: "बूथ 50" },
+  { id: 2, name: "बिलासपुर", childId: 3, childName: "बिलासपुर जिला", vidId: 4, vidName: "बिलासपुर शहर", manId: 5, manName: "बिलासपुर मंडल", sakId: 7, sakName: "शक्ति B", btId: 44, btName: "बूथ 51" },
+];
+
+const SambhagReportPage = () => {
+  const location = useLocation();
+  // Ensure data defaults gracefully
+  const data = location.state || mockData; 
+
+  const [reportData, setReportData] = useState<SambhagData[]>([]);
+  const [upTo, setUpTo] = useState<LevelType>('sambhag');
+  const [isExporting, setIsExporting] = useState(false);
+  const reportRef = useRef<HTMLDivElement>(null);
+
+  // Optimised useEffect hook
+  useEffect(() => {
+    // Only rebuild hierarchy if data or upTo level changes
+    const summary: SambhagData[] = buildReportHierarchy(data, upTo);
+    setReportData(summary);
+  }, [upTo, data]);
+
+
+  const exportPdf = async () => {
+    if (isExporting) return;
+
+    try {
+      setIsExporting(true);
+      const reportElement = reportRef.current;
+      if (!reportElement) return;
+
+      // 1. Get the HTML content from the ref (which contains the current report structure)
+      // 2. Wrap it with the print-specific styles defined in the component's <style> tag
+      // 3. Add the common report header.
+      const htmlContent = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="UTF-8">
+          <style>
+            * { margin: 0; padding: 0; box-sizing: border-box; }
+            body { 
+              font-family: Arial, sans-serif; 
+              padding: 20px;
+              /* Ensure print color adjustment is on for all styles */
+              -webkit-print-color-adjust: exact !important; 
+              print-color-adjust: exact !important;
+            }
+            
+            /* Page setup for PDF */
+            @page { 
+              size: A4 landscape; 
+              margin: 0.5in; /* Standard margins */
+            }
+
+            /* Main structure */
+            .print-header { 
+              font-size: 22px; 
+              font-weight: bold; 
+              margin-bottom: 25px; 
+              text-align: center; 
+            }
+
+            /* Container for each Sambhag to force page break */
+            .sambhag-page { 
+              page-break-before: always; 
+            }
+            .sambhag-page:first-child { 
+              page-break-before: auto; /* No break before the very first one */
+            }
+            
+            /* Table Styling: Use strong borders consistently */
+            table { 
+              width: 100%; 
+              border-collapse: collapse; 
+              margin-bottom: 20px; 
+              border: 2px solid #000 !important; /* Outer table border */
+              page-break-inside: auto !important;
+            }
+            
+            /* Header and Data Cell Styles */
+            th, td { 
+              border: 1px solid #000 !important; /* Internal borders */
+              padding: 10px 8px; 
+              text-align: left; 
+              font-size: 13px; 
+              line-height: 1.4; 
+              vertical-align: top;
+            }
+            
+            th { 
+              font-weight: bold; 
+              text-align: center; 
+              font-size: 14px; 
+              background-color: #e5e7eb; /* Light gray header background */
+            }
+            
+            /* Ensure Sambhag header has proper styling in print */
+            .sambhag-header-print {
+              font-size: 18px; 
+              font-weight: bold; 
+              text-align: center; 
+              margin: 15px 0 15px 0; 
+              padding: 10px; 
+              background-color: #f3f4f6; 
+              border: 2px solid #374151; 
+              page-break-after: avoid;
+            }
+
+            /* Row Styles */
+            .sambhag-section, .total-row {
+              background-color: #fcefdc; /* Light orange for total rows */
+              font-weight: bold;
+            }
+            .sambhag-section td {
+                /* Make Sambhag header rows distinct */
+                background-color: #d1d5db !important;
+                border-top: 2px solid #000 !important;
+            }
+            
+            /* Fix for the bottom border of the last row */
+            tbody tr:last-child td { 
+              border-bottom: 2px solid #000 !important;
+            }
+
+            /* Row breaking control */
+            tr {
+              page-break-inside: avoid !important;
+              page-break-after: auto;
+            }
+          </style>
+        </head>
+        <body>
+          <div class="print-header">📊 संभाग बूथ रिपोर्ट (Sambhag Booth Report) - Level: ${upTo.toUpperCase()}</div>
+          ${(reportElement as HTMLElement).innerHTML.replace(/sambhag-header/g, 'sambhag-header-print').replace(/total-row-class/g, 'total-row')}
+        </body>
+        </html>
+      `;
+
+      // API call to generate PDF
+      const response = await axiosInstance.post('/generate-pdf', {
+        html: htmlContent,
+        filename: `Report_${upTo}_${new Date().toISOString().slice(0, 10)}.pdf`
+      }, {
+        responseType: 'blob'
+      });
+
+      // Download logic
+      const blob = new Blob([response.data], { type: 'application/pdf' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `Report_${upTo}_${new Date().toISOString().slice(0, 10)}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  // --- Table Headers based on 'upTo' level ---
+  const getTableHeaders = () => {
+    const baseHeaders = {
+      sambhag: 'संभाग (Sambhag)',
+      jila: 'जिला (Jila)',
+      vidhansabha: 'विधानसभा (Vidhan Sabha)',
+      mandal: 'मंडल (Mandal)',
+      shakti: 'शक्ति (Shakti)', // Corrected spelling
+      booth: 'बूथ (Booth)',
+    };
+
+    // Dynamic Hierarchy Headers
+    const hierarchyHeaders = [baseHeaders.sambhag];
+    if (['jila', 'vidhansabha', 'mandal', 'shakti', 'booth'].includes(upTo)) {
+      hierarchyHeaders.push(baseHeaders.jila);
+    }
+    if (['vidhansabha', 'mandal', 'shakti', 'booth'].includes(upTo)) {
+      hierarchyHeaders.push(baseHeaders.vidhansabha);
+    }
+    if (['mandal', 'shakti', 'booth'].includes(upTo)) {
+      hierarchyHeaders.push(baseHeaders.mandal);
+    }
+    if (['shakti', 'booth'].includes(upTo)) {
+      hierarchyHeaders.push(baseHeaders.shakti);
+    }
+    if (upTo === 'booth') {
+      hierarchyHeaders.push(baseHeaders.booth);
+    }
+
+    // Dynamic Count Headers (Lower Levels only)
+    const countHeadersMap: Record<LevelType, string[]> = {
+      sambhag: ['जिले (Jilas)', 'विधानसभा (Vidhan)', 'मंडल (Mandal)', 'शक्ति (Shakti)', 'बूथ (Booth)'],
+      jila: ['विधानसभा (Vidhan)', 'मंडल (Mandal)', 'शक्ति (Shakti)', 'बूथ (Booth)'],
+      vidhansabha: ['मंडल (Mandal)', 'शक्ति (Shakti)', 'बूथ (Booth)'],
+      mandal: ['शक्ति (Shakti)', 'बूथ (Booth)'],
+      shakti: ['बूथ (Booth)'],
+      booth: [], // No further counts
+    };
+
+    return {
+      hierarchy: hierarchyHeaders,
+      counts: countHeadersMap[upTo] || [],
+    };
+  };
+
+  const headers = getTableHeaders();
+
+  // --- Dynamic Row Counts (Kept as is) ---
+  const getRowCounts = (item: VisibleChild | SambhagData, level: LevelType): number[] => {
+    switch (level) {
+      case 'sambhag':
+        return [(item as SambhagData).totalJilas || 0, item.totalVidhans || 0, item.totalMandals || 0, item.totalSakhas || 0, item.totalBooths || 0];
+      case 'jila':
+        return [item.totalVidhans || 0, item.totalMandals || 0, item.totalSakhas || 0, item.totalBooths || 0];
+      case 'vidhansabha':
+        return [item.totalMandals || 0, item.totalSakhas || 0, item.totalBooths || 0];
+      case 'mandal':
+        return [item.totalSakhas || 0, item.totalBooths || 0];
+      case 'shakti':
+        return [item.totalBooths || 0];
+      default: // booth
+        return [];
+    }
+  };
+
+  // --- Get counts for total rows including current level counts (Optimized logic) ---
+  const getTotalRowCounts = (sambhag: SambhagData, level: LevelType): number[] => {
+    const counts: number[] = [];
+    
+    // The total counts should align with the headers.counts array.
+    // This logic ensures that.
+    if (level === 'sambhag') {
+        counts.push(sambhag.totalJilas || 0);
+        counts.push(sambhag.totalVidhans || 0);
+        counts.push(sambhag.totalMandals || 0);
+        counts.push(sambhag.totalSakhas || 0);
+        counts.push(sambhag.totalBooths || 0);
+    } else if (level === 'jila') {
+        counts.push(sambhag.totalVidhans || 0);
+        counts.push(sambhag.totalMandals || 0);
+        counts.push(sambhag.totalSakhas || 0);
+        counts.push(sambhag.totalBooths || 0);
+    } else if (level === 'vidhansabha') {
+        counts.push(sambhag.totalMandals || 0);
+        counts.push(sambhag.totalSakhas || 0);
+        counts.push(sambhag.totalBooths || 0);
+    } else if (level === 'mandal') {
+        counts.push(sambhag.totalSakhas || 0);
+        counts.push(sambhag.totalBooths || 0);
+    } else if (level === 'shakti') {
+        counts.push(sambhag.totalBooths || 0);
+    }
+    
+    return counts;
+  };
+  
+  // Renders the main data rows, grouped by Jila and Vidhansabha to apply rowspans
+  const renderDataRows = (sambhag: SambhagData) => {
+    // 1. Group children by Jila and then by Vidhansabha
+    const jilaGroups = sambhag.visibleChildren.reduce((groups: any, child, index) => {
+      const jilaName = child.jilaName || 'Unknown Jila';
+      const vidName = child.vidName || 'Unknown Vidhansabha';
+
+      if (!groups[jilaName]) {
+        groups[jilaName] = { children: [], vidGroups: {} };
+      }
+      groups[jilaName].children.push({ ...child, originalIndex: index });
+
+      if (!groups[jilaName].vidGroups[vidName]) {
+        groups[jilaName].vidGroups[vidName] = [];
+      }
+      groups[jilaName].vidGroups[vidName].push({ ...child, originalIndex: index });
+      return groups;
+    }, {});
+
+    let globalIndex = 0; // Tracks row index across the entire Sambhag
+
+    return Object.entries(jilaGroups).map(([jilaName, jilaData]: [string, any]) => {
+      let jilaRowIndex = 0; // Tracks row index within the Jila group
+
+      return Object.entries(jilaData.vidGroups).map(([vidName, vidChildren]: [string, any]) => {
+
+        return vidChildren.map((child: VisibleChild, vidIndex: number) => {
+          const rowCounts = getRowCounts(child, upTo);
+          const currentGlobalIndex = globalIndex++;
+          const currentJilaRowIndex = jilaRowIndex++;
+
+          return (
+            <tr key={currentGlobalIndex} className="hover:bg-gray-50 transition duration-150">
+              {/* Sambhag Cell: Show only once with rowspan for the whole table */}
+              {currentGlobalIndex === 0 && (
+                <td 
+                  rowSpan={sambhag.visibleChildren.length}
+                  className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 text-center font-medium align-middle bg-gray-50 border-r border-b border-gray-200"
+                >
+                  {sambhag.sambhagName}
+                </td>
+              )}
+
+              {/* Jila Cell: Show only once per Jila group with rowspan */}
+              {headers.hierarchy.includes('जिला (Jila)') && currentJilaRowIndex === 0 && (
+                <td 
+                  rowSpan={jilaData.children.length}
+                  className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 text-center font-medium align-middle"
+                >
+                  {jilaName}
+                </td>
+              )}
+
+              {/* Vidhansabha Cell: Show in every row for mandal/shakti/booth levels, use rowspan for vidhansabha level */}
+              {headers.hierarchy.includes('विधानसभा (Vidhan Sabha)') && (
+                ['mandal', 'shakti', 'booth'].includes(upTo) ? (
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 text-center font-medium border-r border-b border-gray-200">
+                    {vidName}
+                  </td>
+                ) : (
+                  vidIndex === 0 && (
+                    <td 
+                      rowSpan={vidChildren.length}
+                      className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 text-center font-medium align-middle border-r border-b border-gray-200"
+                    >
+                      {vidName}
+                    </td>
+                  )
+                )
+              )}
+
+              {/* Mandal Cell (Non-spanning, only for mandal, shakti, booth level) */}
+              {headers.hierarchy.includes('मंडल (Mandal)') && (
+                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-700 border-r border-b border-gray-200">
+                  {child.manName || child.mandalName || ''}
+                </td>
+              )}
+
+              {/* Shakti Cell (Non-spanning, only for shakti, booth level) */}
+              {headers.hierarchy.includes('शक्ति (Shakti)') && (
+                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-700 border-r border-b border-gray-200">
+                  {(child.sakId ? child.sakId + ' - ' : '') + (child.sakName || child.sakhaName || '')}
+                </td>
+              )}
+
+              {/* Booth Cell (Non-spanning, only for booth level) */}
+              {upTo === 'booth' && (
+                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-700">
+                  {child.boothName || ''}
+                </td>
+              )}
+
+              {/* Count Cells */}
+              {rowCounts.map((count, countIndex) => (
+                <td
+                  key={countIndex}
+                  className="px-6 py-4 whitespace-nowrap text-sm text-center text-gray-700 border-r border-b border-gray-200 last:border-r-0"
+                >
+                  {count}
+                </td>
+              ))}
+            </tr>
+          );
+        }).flat();
+      }).flat();
+    }).flat();
+  };
+
+
+  // Renders the summary row for the current Sambhag
+  const renderSummaryRow = (sambhag: SambhagData) => (
+    <tr className="total-row-class bg-orange-200 border-t-2 border-black">
+      <td className="px-6 py-4 whitespace-nowrap text-base font-bold text-gray-900 text-center" colSpan={1}>
+        **Total**
+      </td>
+      {/* Hierarchy columns with totals (excluding Sambhag itself) */}
+      {headers.hierarchy.slice(1).map((header, index) => {
+        let value = 0;
+        // Determine the count for the hierarchy column based on its level
+        if (headers.hierarchy[index + 1].includes('जिला')) { // Jila column
+            value = sambhag.totalJilas || new Set(sambhag.visibleChildren.map(child => child.jilaName)).size;
+        } else if (headers.hierarchy[index + 1].includes('विधानसभा')) { // Vidhansabha column
+            value = sambhag.totalVidhans || new Set(sambhag.visibleChildren.map(child => child.vidName)).size;
+        } else if (headers.hierarchy[index + 1].includes('मंडल')) { // Mandal column
+            value = sambhag.totalMandals || new Set(sambhag.visibleChildren.map(child => child.manName || child.mandalName)).size;
+        } else if (headers.hierarchy[index + 1].includes('शक्ति')) { // Shakti column
+            value = sambhag.totalSakhas || new Set(sambhag.visibleChildren.map(child => child.sakName || child.sakhaName)).size;
+        } else if (headers.hierarchy[index + 1].includes('बूथ')) { // Booth column
+            value = sambhag.totalBooths || sambhag.visibleChildren.length;
+        }
+        
+        return (
+          <td key={index} className="px-6 py-4 whitespace-nowrap text-base text-center font-bold text-gray-900 border-r border-b border-gray-200">
+            {value}
+          </td>
+        );
+      })}
+      {/* Count columns */}
+      {getTotalRowCounts(sambhag, upTo).map((count, index) => (
+        <td
+          key={index}
+          className="px-6 py-4 whitespace-nowrap text-base text-center font-extrabold text-gray-900 border-r border-b border-gray-200 last:border-r-0"
+        >
+          {count}
+        </td>
+      ))}
+    </tr>
+  );
+
+
+  // Renders the main table structure
+  const renderReportTable = (sambhag: SambhagData) => (
+    <table className="min-w-full divide-y divide-gray-400">
+      {/* Table Header */}
+      <thead className="bg-gray-100 border-b border-gray-400 sticky top-0"> {/* Sticky header for better UX on long tables */}
+        <tr>
+          {/* Hierarchy Headers */}
+          {headers.hierarchy.map((header, index) => (
+            <th
+              key={index}
+              scope="col"
+              className="px-6 py-3 text-left text-xs md:text-sm font-bold uppercase tracking-wider text-gray-900 border-r border-gray-300"
+            >
+              {header}
+            </th>
+          ))}
+
+          {/* Count Headers */}
+          {headers.counts.map((header, index) => (
+            <th
+              key={index}
+              scope="col"
+              className="px-6 py-3 text-center text-xs md:text-sm font-bold uppercase tracking-wider text-gray-900 border-r border-gray-300 last:border-r-0"
+            >
+              {header}
+            </th>
+          ))}
+        </tr>
+      </thead>
+
+      <tbody className="divide-y divide-gray-300">
+        {renderDataRows(sambhag)}
+        {renderSummaryRow(sambhag)}
+      </tbody>
+    </table>
+  );
+
+
+  // --- Main Component Return ---
+  return (
+    <div className="p-4 md:p-8 bg-gray-50 min-h-screen">
+      
+      {/* This is the most critical part: The print styles. 
+        The PDF generation logic takes the HTML content and injects its own 
+        <style> block, but keeping this one for local print (Ctrl+P) is good practice. 
+        I've moved the robust styles directly into the `exportPdf` function to ensure 
+        they are exactly what the PDF service consumes, but keeping a cleaner style block here.
+      */}
+      <style>
+        {`
+          /* Hide UI elements during print */
+          @media print {
+            .no-print {
+              display: none !important;
+            }
+            .sambhag-page:not(:first-child) { 
+              page-break-before: always !important; 
+            }
+            .sambhag-page table {
+              border: 2px solid #000 !important;
+            }
+            .sambhag-page tbody tr:last-child td {
+              border-bottom: 2px solid #000 !important;
+            }
+            tr {
+              page-break-inside: avoid !important;
+              page-break-after: auto;
+            }
+          }
+        `}
+      </style>
+
+      {/* Report Header and Controls (No Print) */}
+      <header className="flex flex-col sm:flex-row justify-between items-center mb-6 border-b border-gray-300 pb-4 no-print">
+        <h1 className="text-2xl md:text-3xl font-bold text-gray-800 mb-4 sm:mb-0">
+          📊 **संभाग रिपोर्ट** (Sambhag Report)
+        </h1>
+        <div className="flex space-x-2 md:space-x-4">
+          {/* Level Selector */}
+          <select
+            value={upTo}
+            onChange={(e) => setUpTo(e.target.value as LevelType)}
+            className="p-2 border border-gray-400 rounded-md shadow-sm text-sm md:text-base cursor-pointer"
+          >
+            <option value="sambhag">संभाग तक (Up to Sambhag)</option>
+            <option value="jila">जिला तक (Up to Jila)</option>
+            <option value="vidhansabha">विधानसभा तक (Up to Vidhan Sabha)</option>
+            <option value="mandal">मंडल तक (Up to Mandal)</option>
+            <option value="shakti">शक्ति तक (Up to Shakti)</option>
+            <option value="booth">बूथ तक (Up to Booth)</option>
+          </select>
+
+          {/* PDF Export Button */}
+          <button
+            onClick={exportPdf}
+            disabled={isExporting}
+            className={`px-4 py-2 font-semibold rounded-md shadow-md transition duration-300 text-sm md:text-base ${
+              isExporting 
+                ? 'bg-gray-400 text-gray-600 cursor-not-allowed' 
+                : 'bg-indigo-600 text-white hover:bg-indigo-700'
+            }`}
+          >
+            {isExporting ? '⏳ Generating...' : '⬇️ Export to PDF'}
+          </button>
+        </div>
+      </header>
+
+
+      {/* Main Report Container (For Print/PDF and Display) */}
+      <div ref={reportRef} className="shadow-xl rounded-lg overflow-x-auto bg-white border border-gray-200">
+        
+        {/* Scenario 1: upTo is 'sambhag' (Single table with all sambhags as rows) */}
+        {upTo === 'sambhag' ? (
+          <table className="min-w-full divide-y divide-gray-300 border border-gray-400">
+             <thead className="bg-gray-100 border-b border-gray-400">
+              <tr>
+                {/* Hierarchy Headers */}
+                {headers.hierarchy.map((header, index) => (
+                  <th key={index} scope="col" className="px-6 py-3 text-left text-sm font-bold uppercase tracking-wider text-gray-900 border-r border-gray-300">
+                    {header}
+                  </th>
+                ))}
+                {/* Count Headers */}
+                {headers.counts.map((header, index) => (
+                  <th key={index} scope="col" className="px-6 py-3 text-center text-sm font-bold uppercase tracking-wider text-gray-900 border-r border-gray-300 last:border-r-0">
+                    {header}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-300">
+              {reportData.map((sambhag) => (
+                <tr key={sambhag.sambhagId} className="font-extrabold border-t-4 border-black hover:bg-gray-100 transition duration-150 total-row-class">
+                  <td className="px-6 py-4 whitespace-nowrap text-lg text-gray-900 border-r border-b border-gray-200" colSpan={headers.hierarchy.length}>
+                    **{sambhag.sambhagId} - {sambhag.sambhagName}**
+                  </td>
+                  {/* Counts are displayed for the current row's level */}
+                  {getRowCounts(sambhag, 'sambhag').map((count, index) => (
+                    <td
+                      key={index}
+                      className="px-6 py-4 whitespace-nowrap text-sm text-center font-extrabold text-gray-900 bg-orange-100 border-r border-b border-gray-200 last:border-r-0"
+                    >
+                      {count}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        ) : (
+          /* Scenario 2: upTo is Jila, Vidhansabha, Mandal, Shakti, or Booth (Separate table/page for each sambhag) */
+          <div>
+            {reportData.map((sambhag, sambhagIndex) => (
+              <div 
+                key={sambhag.sambhagId} 
+                // CRITICAL: Apply page-break-before: always on the second and subsequent sambhag-page
+                className={`sambhag-page p-4 ${sambhagIndex > 0 ? "mt-8" : ""}`}
+              >
+                {/* Sambhag Header for each segment */}
+                <div className="sambhag-header mb-4 p-4 bg-gray-100 border-2 border-gray-400 rounded">
+                  <h2 className="text-xl font-bold text-gray-900 text-center">
+                    **संभाग:** {sambhag.sambhagId} - {sambhag.sambhagName}
+                  </h2>
+                </div>
+                
+                {/* Render the full table structure for this Sambhag */}
+                {renderReportTable(sambhag)}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default SambhagReportPage;

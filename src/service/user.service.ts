@@ -70,7 +70,7 @@ interface BlockFull {
 class UserService {
   // 1. Get all districts
   public async getAllDistrict(token: string): Promise<ApiResponse<District[]>> {
-    console.log("Token in getAllDistrict:", token);
+    // console.log("Token in getAllDistrict:", token);
     try {
       const res = await axiosInstance.get<ApiResponse<District[]>>("/districts", {
         headers: { Authorization: `Bearer ${token}` }

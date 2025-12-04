@@ -5,12 +5,12 @@ import { ReportLayout } from "./ReportLayout";
 import { ChartSection } from "./ChartSection";
 import { FullPageLoader, ButtonLoader, BlockFetchingLoader } from "./LoaderComponents";
 import { ErrorMessage } from "./ErrorComponents";
-import EconomicStatusChart from "../../Components/EconomicStatusChart";
-import SchemeSpendingAndSavingChart from "../SchemeInfoMediumChart";
-import MinisterReachImpactChart from "../MinisterReachImpactChart";
-import MinisterYearPerformanceChart from "../../Components/MinisterYearPerformanceChart";
-import CooperativeSchemesAwareness from "../../Components/CooperativeSchemesAwareness";
-import BjpGovernmentSatisfactionChart from "../../Components/BjpGovernmentSatisfactionChart";
+import EconomicStatusChart from "./ReportCharts/EconomicStatusChart";
+import SchemeSpendingAndSavingChart from "./ReportCharts/SchemeInfoMediumChart";
+import MinisterReachImpactChart from "./ReportCharts/MinisterReachImpactChart";
+import MinisterYearPerformanceChart from "./ReportCharts/MinisterYearPerformanceChart";
+import CooperativeSchemesAwareness from "./ReportCharts/CooperativeSchemesAwareness";
+import BjpGovernmentSatisfactionChart from "./ReportCharts/BjpGovernmentSatisfactionChart";
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
 import { useSelector } from "react-redux";
@@ -52,13 +52,13 @@ export const BlockReportPage: React.FC = () => {
     setFilteredBlocks([]);
     setBlocksError(null);
     setLoadingBlocks(true);
-    if(!token){
+    if (!token) {
       setBlocksError("token not authenticated");
       setLoadingBlocks(false);
       return;
     }
     try {
-      const res = await userService.getDistrictMeta(id,token);
+      const res = await userService.getDistrictMeta(id, token);
       if (res.success) {
         const blocks = res.data.blocks;
         setAllBlocks(blocks);
@@ -99,7 +99,7 @@ export const BlockReportPage: React.FC = () => {
         .replace(/\s*\([RU]\)$/, "")
         .trim()
         .toUpperCase();
-      
+
       if (!map.has(cleanName)) map.set(cleanName, []);
       map.get(cleanName)!.push(b);
     });
@@ -114,25 +114,25 @@ export const BlockReportPage: React.FC = () => {
 
     try {
       let res;
-      
+
       if (blockType === "ALL") {
         // Call combined API for ALL blocks
         res = await userService.getCombinedBlockReport(selectedBlockName, selectedDistrict!, token);
       } else {
         // Call getBlockById API for R or U blocks
-        const selectedBlock = filteredBlocks.find(b => 
+        const selectedBlock = filteredBlocks.find(b =>
           b.block_name.replace(/\s*\([RU]\)$/, "").trim().toUpperCase() === selectedBlockName
         );
-        
+
         if (!selectedBlock) {
           setReportError("Selected block not found");
           setLoadingReport(false);
           return;
         }
-        
+
         res = await userService.getBlockById(selectedBlock.bolck_Id, token);
       }
-      
+
       if (res.success) {
         setBlockData(res.data);
       } else {
@@ -180,13 +180,13 @@ export const BlockReportPage: React.FC = () => {
           <BlockFetchingLoader />
         </div>
       )}
-      
+
       {/* Blocks error */}
       {blocksError && (
         <div className="bg-white rounded-lg p-4 border border-gray-200">
-          <ErrorMessage 
-            message={blocksError} 
-            onRetry={() => selectedDistrict && handleDistrictChange(selectedDistrict, selectedDistrictName)} 
+          <ErrorMessage
+            message={blocksError}
+            onRetry={() => selectedDistrict && handleDistrictChange(selectedDistrict, selectedDistrictName)}
           />
         </div>
       )}
@@ -198,11 +198,10 @@ export const BlockReportPage: React.FC = () => {
             <h3 className="text-sm font-medium text-gray-900 mb-3">Block Type</h3>
             <div className="flex gap-3">
               {(["ALL", "R", "U"] as const).map((t) => (
-                <label key={t} className={`flex items-center gap-2 cursor-pointer px-3 py-2 rounded-lg border transition-all ${
-                  blockType === t 
-                    ? "bg-orange-50 border-orange-300 text-orange-700" 
+                <label key={t} className={`flex items-center gap-2 cursor-pointer px-3 py-2 rounded-lg border transition-all ${blockType === t
+                    ? "bg-orange-50 border-orange-300 text-orange-700"
                     : "bg-white border-gray-200 text-gray-600 hover:bg-gray-50"
-                }`}>
+                  }`}>
                   <input
                     type="radio"
                     name="blockType"
@@ -243,7 +242,7 @@ export const BlockReportPage: React.FC = () => {
         <div className="bg-white rounded-lg border border-gray-200">
           <div className="p-4">
             <label className="block text-sm font-medium text-gray-700 mb-2">Select Block</label>
-            
+
             <div className="relative">
               <select
                 className="w-full p-3 pr-10 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-orange-500 focus:border-orange-500 bg-white appearance-none cursor-pointer"
@@ -257,14 +256,14 @@ export const BlockReportPage: React.FC = () => {
                   </option>
                 ))}
               </select>
-              
+
               <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
                 <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                 </svg>
               </div>
             </div>
-            
+
             {selectedBlockName && (
               <div className="mt-2 bg-orange-50 border border-orange-200 rounded-lg p-2">
                 <span className="text-xs text-orange-700">✓ {selectedBlockName}</span>
@@ -273,7 +272,7 @@ export const BlockReportPage: React.FC = () => {
           </div>
         </div>
       )}
-      
+
       {/* No blocks available */}
       {selectedDistrict && !loadingBlocks && !blocksError && groupedBlockNames.length === 0 && (
         <div className="bg-white rounded-lg border border-gray-200 p-4 text-center">
@@ -303,12 +302,12 @@ export const BlockReportPage: React.FC = () => {
 
       {/* Loading report */}
       {loadingReport && <FullPageLoader message="Generating report..." />}
-      
+
       {/* Report error */}
       {reportError && (
-        <ErrorMessage 
-          message={reportError} 
-          onRetry={handleSubmit} 
+        <ErrorMessage
+          message={reportError}
+          onRetry={handleSubmit}
         />
       )}
 

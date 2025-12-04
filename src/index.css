@@ -14,3 +14,71 @@
 }
 
 
+
+
+/* 1. Global Print Settings */
+@page {
+  size: A4 landscape;
+  margin: 0.5in;
+}
+
+body {
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+  font-family: Arial, sans-serif;
+}
+
+/* 2. Table Structure and Borders */
+table {
+  width: 100% !important;
+  /* 🎯 CHANGE 1: Use 'separate' for better control over outer table border */
+  border-collapse: separate !important; 
+  border-spacing: 0;
+  margin-bottom: 20px;
+  
+  /* 🎯 CHANGE 2: Define a robust, visible outer border on the table */
+  border: 2px solid #000 !important; 
+}
+
+/* Internal cell borders */
+th, td {
+  /* Use a thinner border for internal grid lines */
+  border: 1px solid #000 !important; 
+  padding: 12px 8px !important;
+  font-size: 14px !important;
+  line-height: 1.4 !important;
+  text-align: left;
+}
+
+th {
+  font-weight: bold !important;
+  text-align: center;
+}
+
+/* 🎯 FIX 1: Explicitly remove the internal bottom border from the last row's cells */
+.sambhag-page tbody tr:last-child td {
+  border-bottom: none !important;
+}
+
+/* 🎯 FIX 2: Correct the rightmost border of the last cell, as it's often the one that breaks */
+.sambhag-page tbody tr td:last-child {
+  border-right: 1px solid #000 !important; 
+}
+
+/* 3. Page Breaks */
+.sambhag-page {
+  page-break-inside: auto !important;
+  overflow: visible !important;
+}
+
+.sambhag-page:not(:first-child) { 
+  page-break-before: always !important; 
+}
+
+/* Hide UI elements during print */
+@media print {
+  .no-print {
+    display: none !important;
+  }
+}
+

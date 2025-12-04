@@ -1,0 +1,2428 @@
+
+// // // // // // import { useMemo, useState, useRef } from "react";
+// // // // // // import { useLocation, useNavigate } from "react-router-dom";
+// // // // // // import html2canvas from "html2canvas";
+// // // // // // import jsPDF from "jspdf";
+
+// // // // // // // Define the structure of your data item
+// // // // // // type DataItem = {
+// // // // // //   id: number;
+// // // // // //   name: string;      // Cluster name
+// // // // // //   childId: number;    // Lok Sabha id
+// // // // // //   childName: string;  // Lok Sabha name
+// // // // // //   childType: string;  // "lok"
+// // // // // //   vidId: number;      // Vidhan Sabha id
+// // // // // //   vidhanSabha: string;
+// // // // // //   manId: number;
+// // // // // //   manName: string;
+// // // // // //   sakId: number;
+// // // // // //   sakName: string;
+// // // // // //   btId: number;
+// // // // // //   btName: string;
+// // // // // // };
+
+// // // // // // // --- PDF Constants for Best Quality & Margins ---
+// // // // // // const PDF_MARGIN_MM = 10; // 10mm margin on all sides
+// // // // // // const A4_WIDTH_MM = 297; // A4 landscape width
+// // // // // // const A4_HEIGHT_MM = 210; // A4 landscape height
+// // // // // // const DPI_SCALE = 4; // Higher scale (4 or 5 recommended) for sharp text/lines
+
+// // // // // // // --- Styles ---
+// // // // // // const th: React.CSSProperties = {
+// // // // // //   border: "1px solid #ccc",
+// // // // // //   padding: "8px",
+// // // // // //   textAlign: "center",
+// // // // // //   fontWeight: "bold",
+// // // // // //   whiteSpace: "nowrap",
+// // // // // // };
+
+// // // // // // const td: React.CSSProperties = {
+// // // // // //   border: "1px solid #ccc",
+// // // // // //   padding: "6px",
+// // // // // //   textAlign: "center",
+// // // // // //   fontSize: "12px",
+// // // // // // };
+
+// // // // // // // --- Component ---
+// // // // // // export default function ClusterReport() {
+// // // // // //   const location = useLocation();
+// // // // // //   const navigate = useNavigate();
+// // // // // //   const data: DataItem[] = (location.state as DataItem[]) || [];
+// // // // // //   const tableRef = useRef<HTMLTableElement>(null); 
+
+// // // // // //   const [showUpTo, setShowUpTo] = useState("vidhans");
+
+// // // // // //   function groupByCluster(data: DataItem[]) {
+// // // // // //     const result: Record<string, any> = {};
+
+// // // // // //     data.forEach((item) => {
+// // // // // //       const clusterKey = `C_${item.id}`;
+
+// // // // // //       if (!result[clusterKey]) {
+// // // // // //         result[clusterKey] = {
+// // // // // //           clusterName: item.name,
+// // // // // //           lokSabhas: new Set(),
+// // // // // //           vidhans: new Set(),
+// // // // // //           mandals: new Set(),
+// // // // // //           sak: new Set(),
+// // // // // //           booths: new Set(),
+// // // // // //         };
+// // // // // //       }
+
+// // // // // //       const cluster = result[clusterKey];
+
+// // // // // //       // Storing both ID and Name to display Name later
+// // // // // //       cluster.lokSabhas.add(item.childId + "_" + item.childName);
+// // // // // //       cluster.vidhans.add(item.vidId + "_" + item.vidhanSabha);
+// // // // // //       cluster.mandals.add(item.vidId + "_" + item.manId + "_" + item.manName);
+// // // // // //       cluster.sak.add(item.vidId + "_" + item.sakId + "_" + item.sakName);
+// // // // // //       cluster.booths.add(item.vidId + "_" + item.btId + "_" + item.btName);
+// // // // // //     });
+
+// // // // // //     return result;
+// // // // // //   }
+
+// // // // // //   const grouped = useMemo(() => groupByCluster(data), [data]);
+
+// // // // // //   const hierarchy = [
+// // // // // //     { key: "clusterName", label: "Cluster" },
+// // // // // //     { key: "lokSabhas", label: "लोकसभा" },
+// // // // // //     { key: "vidhans", label: "विधानसभा" },
+// // // // // //     { key: "mandals", label: "मंडल" },
+// // // // // //     { key: "sak", label: "शक्ति केंद्र" },
+// // // // // //     { key: "booths", label: "बूथ" },
+// // // // // //   ];
+
+// // // // // //   const levels = hierarchy.map((h) => h.key);
+// // // // // //   const selectedIndex = levels.indexOf(showUpTo);
+
+// // // // // //   const renderCell = (map: Set<any> | string, levelIndex: number) => {
+// // // // // //     if (!map) return 0;
+// // // // // //     if (typeof map === "string") return map;
+
+// // // // // //     if (levelIndex <= selectedIndex) {
+// // // // // //       return Array.from(map.values())
+// // // // // //         .map((v) => (typeof v === "string" ? v.split("_").slice(-1)[0] : v))
+// // // // // //         .join(", ");
+// // // // // //     }
+
+// // // // // //     return map.size;
+// // // // // //   };
+
+// // // // // //   /**
+// // // // // //    * Exports ONLY the table content to a PDF, with enhanced quality (DPI_SCALE) and margins.
+// // // // // //    */
+// // // // // //   const exportToPDF = async () => {
+// // // // // //     if (!tableRef.current) {
+// // // // // //       alert("Table not rendered or reference is missing.");
+// // // // // //       return;
+// // // // // //     }
+
+// // // // // //     try {
+// // // // // //       // 1. Capture the table HTML as a Canvas/Image with higher scale
+// // // // // //       const canvas = await html2canvas(tableRef.current, {
+// // // // // //         scale: DPI_SCALE, 
+// // // // // //         useCORS: true,
+// // // // // //         logging: false,
+// // // // // //       });
+
+// // // // // //       // Use JPEG with quality 1.0 for better image compression than PNG while maintaining high visual quality
+// // // // // //       const imgData = canvas.toDataURL("image/jpeg", 1.0); 
+
+// // // // // //       // Initialize jsPDF for A4 Landscape
+// // // // // //       const pdf = new jsPDF("l", "mm", "a4"); 
+
+// // // // // //       // Calculate effective width available inside the margins
+// // // // // //       const contentWidth_MM = A4_WIDTH_MM - (PDF_MARGIN_MM * 2);
+
+// // // // // //       // Calculate the image height to maintain aspect ratio within content width
+// // // // // //       const imgHeight_MM = (canvas.height * contentWidth_MM) / canvas.width;
+
+// // // // // //       let heightLeft = imgHeight_MM;
+// // // // // //       let position = PDF_MARGIN_MM; // Start Y position is the top margin
+
+// // // // // //       // 2. Add the image to the PDF, placed to respect margins
+// // // // // //       pdf.addImage(
+// // // // // //         imgData, 
+// // // // // //         "JPEG", 
+// // // // // //         PDF_MARGIN_MM,    // X start position (left margin)
+// // // // // //         position,         // Y start position (top margin)
+// // // // // //         contentWidth_MM,  // Image width scaled to fit content area
+// // // // // //         imgHeight_MM      // Image height
+// // // // // //       );
+
+// // // // // //       // Calculate remaining height on the current page, accounting for the bottom margin
+// // // // // //       heightLeft -= (A4_HEIGHT_MM - PDF_MARGIN_MM); 
+
+// // // // // //       // 3. Handle multi-page content
+// // // // // //       while (heightLeft > 0) {
+// // // // // //           // Calculate the Y position for the next page break (pushes content up)
+// // // // // //           position = heightLeft - imgHeight_MM + PDF_MARGIN_MM;
+
+// // // // // //           pdf.addPage();
+
+// // // // // //           pdf.addImage(
+// // // // // //             imgData, 
+// // // // // //             'JPEG', 
+// // // // // //             PDF_MARGIN_MM, 
+// // // // // //             position, 
+// // // // // //             contentWidth_MM, 
+// // // // // //             imgHeight_MM
+// // // // // //           );
+
+// // // // // //           // Update remaining height for the next page
+// // // // // //           heightLeft -= (A4_HEIGHT_MM - PDF_MARGIN_MM);
+// // // // // //       }
+
+// // // // // //       pdf.save("cluster-report-high-quality.pdf");
+// // // // // //       // Optionally provide user feedback
+// // // // // //       // alert("High-Quality PDF exported successfully!"); 
+
+// // // // // //     } catch (err) {
+// // // // // //       console.error("PDF generation failed:", err);
+// // // // // //       // alert("PDF generation failed. Check the browser console for details.");
+// // // // // //     }
+// // // // // //   };
+
+
+// // // // // //   return (
+// // // // // //     <div style={{ padding: "20px" }}>
+// // // // // //       <h1>Cluster Report</h1>
+
+// // // // // //       <div style={{ marginBottom: 12, display: "flex", gap: "15px", alignItems: "center", justifyContent: "space-between" }}>
+// // // // // //         <button
+// // // // // //           onClick={() => navigate('/dashboard')}
+// // // // // //           style={{
+// // // // // //             padding: "8px 16px",
+// // // // // //             backgroundColor: "#6c757d",
+// // // // // //             color: "white",
+// // // // // //             border: "none",
+// // // // // //             borderRadius: "4px",
+// // // // // //             cursor: "pointer"
+// // // // // //           }}
+// // // // // //         >
+// // // // // //           ← Back to Dashboard
+// // // // // //         </button>
+// // // // // //         <div style={{ display: "flex", gap: "15px", alignItems: "center" }}>
+// // // // // //         <label>
+// // // // // //           Show detail up to:{" "}
+// // // // // //           <select
+// // // // // //             value={showUpTo}
+// // // // // //             onChange={(e) => setShowUpTo(e.target.value)}
+// // // // // //             style={{ padding: "6px", borderRadius: "4px" }}
+// // // // // //           >
+// // // // // //             {hierarchy.map((h) => (
+// // // // // //               <option key={h.key} value={h.key}>
+// // // // // //                 {h.label}
+// // // // // //               </option>
+// // // // // //             ))}
+// // // // // //           </select>
+// // // // // //         </label>
+// // // // // //         <button
+// // // // // //           onClick={exportToPDF}
+// // // // // //           style={{
+// // // // // //             padding: "8px 16px",
+// // // // // //             backgroundColor: "#007bff",
+// // // // // //             color: "white",
+// // // // // //             border: "none",
+// // // // // //             borderRadius: "4px",
+// // // // // //             cursor: "pointer",
+// // // // // //             fontWeight: "bold",
+// // // // // //           }}
+// // // // // //         >
+// // // // // //           Export to High-Quality PDF 📄
+// // // // // //         </button>
+// // // // // //         </div>
+// // // // // //       </div>
+
+// // // // // //       {/* Table element attached with ref for PDF capture */}
+// // // // // //       <table 
+// // // // // //         ref={tableRef} 
+// // // // // //         style={{ 
+// // // // // //           width: "100%", 
+// // // // // //           borderCollapse: "collapse", 
+// // // // // //           tableLayout: "fixed" 
+// // // // // //         }}
+// // // // // //       >
+// // // // // //         <thead>
+// // // // // //           <tr style={{ background: "#efefef" }}>
+// // // // // //             {hierarchy.map((h) => (
+// // // // // //               <th key={h.key} style={th}>
+// // // // // //                 {h.label}
+// // // // // //               </th>
+// // // // // //             ))}
+// // // // // //           </tr>
+// // // // // //         </thead>
+
+// // // // // //         <tbody>
+// // // // // //           {Object.entries(grouped).map(([clusterKey, info]) => (
+// // // // // //             <tr key={clusterKey}>
+// // // // // //               {hierarchy.map((h, i) => (
+// // // // // //                 <td 
+// // // // // //                   key={h.key} 
+// // // // // //                   style={{ 
+// // // // // //                     ...td, 
+// // // // // //                     textAlign: i === 0 ? "left" : "center",
+// // // // // //                     wordBreak: "break-word" 
+// // // // // //                   }}
+// // // // // //                 >
+// // // // // //                   {renderCell(info[h.key], i)}
+// // // // // //                 </td>
+// // // // // //               ))}
+// // // // // //             </tr>
+// // // // // //           ))}
+// // // // // //         </tbody>
+// // // // // //       </table>
+// // // // // //     </div>
+// // // // // //   );
+// // // // // // }
+
+
+
+// // // // // import { useMemo, useState, useRef } from "react";
+// // // // // import { useLocation, useNavigate } from "react-router-dom";
+// // // // // import html2canvas from "html2canvas";
+// // // // // import jsPDF from "jspdf";
+
+// // // // // // Define the structure of your data item
+// // // // // type DataItem = {
+// // // // //     id: number;
+// // // // //     name: string;       // Cluster name
+// // // // //     childId: number;    // Lok Sabha id
+// // // // //     childName: string;  // Lok Sabha name
+// // // // //     childType: string;  // "lok"
+// // // // //     vidId: number;      // Vidhan Sabha id
+// // // // //     vidhanSabha: string;
+// // // // //     manId: number;
+// // // // //     manName: string;
+// // // // //     sakId: number;
+// // // // //     sakName: string;
+// // // // //     btId: number;
+// // // // //     btName: string;
+// // // // // };
+
+// // // // // // --- PDF Constants for Best Quality & Margins ---
+// // // // // const PDF_MARGIN_MM = 10; 
+// // // // // const A4_WIDTH_MM = 297; // A4 landscape width
+// // // // // const A4_HEIGHT_MM = 210; // A4 landscape height
+// // // // // const DPI_SCALE = 3; // Good balance of quality and performance
+
+// // // // // // --- Tailwind CSS Classes for Readability in Print ---
+// // // // // const tailwind = {
+// // // // //     // Header cell styles for print clarity
+// // // // //     th: "border border-gray-700 p-2 text-center font-bold whitespace-nowrap text-sm bg-gray-200",
+// // // // //     // Data cell styles for print clarity
+// // // // //     td: "border border-gray-700 p-2 text-center text-xs break-words",
+// // // // //     // Table container
+// // // // //     table: "w-full border-collapse bg-white shadow-lg", 
+// // // // //     // Main page container
+// // // // //     container: "p-5 min-h-screen bg-gray-50",
+// // // // //     // Primary page header
+// // // // //     pageTitle: "text-2xl font-bold mb-4 text-gray-800",
+// // // // //     // Controls container
+// // // // //     controls: "flex items-center space-x-4",
+// // // // //     // Primary button
+// // // // //     primaryBtn: "py-2 px-4 bg-blue-600 text-white font-bold rounded shadow hover:bg-blue-700 transition duration-150",
+// // // // //     // Secondary button
+// // // // //     secondaryBtn: "py-2 px-4 bg-gray-600 text-white rounded shadow hover:bg-gray-700 transition duration-150",
+// // // // //     // Select dropdown
+// // // // //     select: "p-2 border rounded",
+// // // // //     // Content wrapper for HTML2Canvas (PDF Print Area)
+// // // // //     printWrapper: "p-4 bg-white shadow-lg mt-4",
+// // // // //     // PDF Header Styles
+// // // // //     pdfHeader: "mb-6 flex flex-col items-start border-b pb-2",
+// // // // //     pdfH1: "text-xl font-extrabold text-gray-900 mb-1", // Main Title
+// // // // //     pdfDetail: "text-base font-semibold text-gray-700", // Detail Level
+// // // // // };
+
+// // // // // // --- Component ---
+// // // // // export default function ClusterReport() {
+// // // // //     const location = useLocation();
+// // // // //     const navigate = useNavigate();
+// // // // //     const data: DataItem[] = (location.state as DataItem[]) || [];
+
+// // // // //     // ➡️ REF: Target the entire content wrapper for capture (including headers)
+// // // // //     const contentRef = useRef<HTMLDivElement>(null); 
+// // // // //     const tableRef = useRef<HTMLTableElement>(null); 
+
+// // // // //     // Default level: shows details up to 'vidhans'
+// // // // //     const [showUpTo, setShowUpTo] = useState("vidhans");
+
+// // // // //     function groupByCluster(data: DataItem[]) {
+// // // // //         const result: Record<string, any> = {};
+
+// // // // //         data.forEach((item) => {
+// // // // //             const clusterKey = `C_${item.id}`;
+
+// // // // //             if (!result[clusterKey]) {
+// // // // //                 result[clusterKey] = {
+// // // // //                     // Storing the ID and Name for hierarchy processing
+// // // // //                     clusterName: item.name, 
+// // // // //                     lokSabhas: new Set<string>(),
+// // // // //                     vidhans: new Set<string>(),
+// // // // //                     mandals: new Set<string>(),
+// // // // //                     sak: new Set<string>(),
+// // // // //                     booths: new Set<string>(),
+// // // // //                 };
+// // // // //             }
+
+// // // // //             const cluster = result[clusterKey];
+
+// // // // //             // Storing both ID and Name (Name is slice(-1)[0] later)
+// // // // //             cluster.lokSabhas.add(item.childId + "_" + item.childName);
+// // // // //             cluster.vidhans.add(item.vidId + "_" + item.vidhanSabha.trim());
+// // // // //             cluster.mandals.add(item.vidId + "_" + item.manId + "_" + item.manName);
+// // // // //             cluster.sak.add(item.vidId + "_" + item.sakId + "_" + item.sakName);
+// // // // //             cluster.booths.add(item.vidId + "_" + item.btId + "_" + item.btName);
+// // // // //         });
+
+// // // // //         return result;
+// // // // //     }
+
+// // // // //     const grouped = useMemo(() => groupByCluster(data), [data]);
+
+// // // // //     const hierarchy = [
+// // // // //         { key: "sNo", label: "क्र. सं." }, // ➡️ ADDED: Serial Number
+// // // // //         { key: "clusterName", label: "क्लस्टर" },
+// // // // //         { key: "lokSabhas", label: "लोकसभा" },
+// // // // //         { key: "vidhans", label: "विधानसभा" },
+// // // // //         { key: "mandals", label: "मंडल" },
+// // // // //         { key: "sak", label: "शक्ति केंद्र" },
+// // // // //         { key: "booths", label: "बूथ" },
+// // // // //     ];
+
+// // // // //     const levels = hierarchy.map((h) => h.key);
+// // // // //     const selectedIndex = levels.indexOf(showUpTo);
+
+// // // // //     const renderCell = (map: Set<any> | string, levelIndex: number) => {
+// // // // //         if (!map) return 0;
+// // // // //         if (typeof map === "string") return map;
+
+// // // // //         if (levelIndex <= selectedIndex) {
+// // // // //             return Array.from(map.values())
+// // // // //                 // Extract only the Name part (last element after splitting '_')
+// // // // //                 .map((v) => (typeof v === "string" ? v.split("_").slice(-1)[0] : v))
+// // // // //                 // ➡️ CHANGED: Use \n for better multi-line readability in PDF image capture
+// // // // //                 .join("\n"); 
+// // // // //         }
+
+// // // // //         return map.size;
+// // // // //     };
+
+// // // // //     /**
+// // // // //      * Exports the content (Header + Table) to a high-quality, paginated PDF.
+// // // // //      */
+// // // // //     const exportToPDF = async () => {
+// // // // //         if (!contentRef.current) {
+// // // // //             alert("Report content not available for export.");
+// // // // //             return;
+// // // // //         }
+
+// // // // //         try {
+// // // // //              // Temporarily set table layout to auto to capture full content
+// // // // //             if (tableRef.current) {
+// // // // //                  tableRef.current.style.tableLayout = "auto";
+// // // // //             }
+
+// // // // //             // 1. Capture the entire HTML content (Header + Table) as an image
+// // // // //             const canvas = await html2canvas(contentRef.current, {
+// // // // //                 scale: DPI_SCALE, 
+// // // // //                 useCORS: true,
+// // // // //                 logging: false,
+// // // // //                 windowWidth: contentRef.current.scrollWidth,
+// // // // //                 windowHeight: contentRef.current.scrollHeight,
+// // // // //             });
+
+// // // // //             if (tableRef.current) {
+// // // // //                 // Restore fixed layout
+// // // // //                 tableRef.current.style.tableLayout = "fixed";
+// // // // //             }
+
+// // // // //             const imgData = canvas.toDataURL("image/jpeg", 1.0); 
+// // // // //             const pdf = new jsPDF("l", "mm", "a4"); 
+
+// // // // //             const contentWidth_MM = A4_WIDTH_MM - (PDF_MARGIN_MM * 2);
+// // // // //             const imgHeight_MM = (canvas.height * contentWidth_MM) / canvas.width;
+
+// // // // //             let currentY = PDF_MARGIN_MM; // Start Y position 
+// // // // //             let position = 0; // Tracks the starting position (in MM) of the content being rendered
+
+// // // // //             // 2. Handle multi-page content
+// // // // //             while (position < imgHeight_MM) {
+// // // // //                 if (position !== 0) {
+// // // // //                     pdf.addPage();
+// // // // //                     currentY = PDF_MARGIN_MM; // Start from top margin on new pages
+// // // // //                 }
+
+// // // // //                 // Effective space available on the current page
+// // // // //                 const remainingPageSpace = A4_HEIGHT_MM - currentY - PDF_MARGIN_MM;
+// // // // //                 const clippingHeight = Math.min(imgHeight_MM - position, remainingPageSpace);
+
+// // // // //                 pdf.addImage(
+// // // // //                     imgData,
+// // // // //                     'JPEG',
+// // // // //                     PDF_MARGIN_MM,
+// // // // //                     currentY,
+// // // // //                     contentWidth_MM,
+// // // // //                     clippingHeight,
+// // // // //                     undefined,
+// // // // //                     'FAST',
+// // // // //                     // Source clipping for proper pagination
+// // // // //                     { 
+// // // // //                         x: 0, 
+// // // // //                         y: (position / imgHeight_MM) * canvas.height, 
+// // // // //                         w: canvas.width, 
+// // // // //                         h: (clippingHeight / imgHeight_MM) * canvas.height 
+// // // // //                     }
+// // // // //                 );
+
+// // // // //                 position += clippingHeight;
+// // // // //                 currentY += clippingHeight;
+
+// // // // //                 // Add page number 
+// // // // //                 pdf.setFontSize(8);
+// // // // //                 pdf.text(`Page ${pdf.internal.pages.length - 1}`, A4_WIDTH_MM - PDF_MARGIN_MM, A4_HEIGHT_MM - PDF_MARGIN_MM, { align: 'right' });
+// // // // //             }
+
+// // // // //             pdf.save("cluster-report-summary.pdf");
+
+// // // // //         } catch (err) {
+// // // // //             console.error("PDF generation failed:", err);
+// // // // //             alert("PDF generation failed. Check the browser console for details.");
+// // // // //         }
+// // // // //     };
+
+
+// // // // //     return (
+// // // // //         <div className={tailwind.container}>
+
+// // // // //             {/* --- Main Page Header and Controls (Always Visible) --- */}
+// // // // //             <div className="flex items-center justify-between border-b pb-4 mb-4">
+// // // // //                 <h1 className={tailwind.pageTitle}>क्लस्टर रिपोर्ट (सारांश) 📊</h1>
+
+// // // // //                 <div className={tailwind.controls}>
+// // // // //                     <button
+// // // // //                         onClick={() => navigate('/dashboard')}
+// // // // //                         className={tailwind.secondaryBtn}
+// // // // //                     >
+// // // // //                         ← Back to Dashboard
+// // // // //                     </button>
+// // // // //                     <div className="flex items-center space-x-2">
+// // // // //                         <label className="font-bold text-sm">
+// // // // //                             Show detail up to:{" "}
+// // // // //                             <select
+// // // // //                                 value={showUpTo}
+// // // // //                                 onChange={(e) => setShowUpTo(e.target.value)}
+// // // // //                                 className={tailwind.select}
+// // // // //                             >
+// // // // //                                 {/* Filter out 'sNo' from detail toggle */}
+// // // // //                                 {hierarchy.filter(h => h.key !== "sNo").map((h) => (
+// // // // //                                     <option key={h.key} value={h.key}>
+// // // // //                                         {h.label}
+// // // // //                                     </option>
+// // // // //                                 ))}
+// // // // //                             </select>
+// // // // //                         </label>
+// // // // //                     </div>
+// // // // //                     <button
+// // // // //                         onClick={exportToPDF}
+// // // // //                         className={tailwind.primaryBtn}
+// // // // //                     >
+// // // // //                         Export to High-Quality PDF 📄
+// // // // //                     </button>
+// // // // //                 </div>
+// // // // //             </div>
+
+// // // // //             {/* --------------------------------------------------- */}
+// // // // //             {/* --- Content Wrapper for HTML2Canvas (PDF Print Area) --- */}
+// // // // //             <div ref={contentRef} className={tailwind.printWrapper}>
+
+// // // // //                 {/* ➡️ Heading and Details (Captured by HTML2Canvas for Hindi Font support) */}
+// // // // //                 <header className={tailwind.pdfHeader}>
+// // // // //                     <h1 className={tailwind.pdfH1}>क्लस्टर रिपोर्ट (सारांश)</h1>
+// // // // //                     <p className={tailwind.pdfDetail}>
+// // // // //                         **विवरण स्तर (Detail Level):** {hierarchy.find(h => h.key === showUpTo)?.label || "क्लस्टर"}
+// // // // //                     </p>
+// // // // //                 </header>
+
+// // // // //                 {/* --- Report Table --- */}
+// // // // //                 <table
+// // // // //                     ref={tableRef}
+// // // // //                     className={tailwind.table}
+// // // // //                     style={{ tableLayout: "fixed" }}
+// // // // //                 >
+// // // // //                     <thead>
+// // // // //                         <tr className="bg-gray-100">
+// // // // //                             {hierarchy.map((h) => (
+// // // // //                                 <th 
+// // // // //                                     key={h.key} 
+// // // // //                                     className={tailwind.th}
+// // // // //                                     style={{ 
+// // // // //                                         // Custom widths for a clean landscape layout
+// // // // //                                         width: h.key === 'sNo' ? '5%' : h.key === 'clusterName' ? '15%' : '16%',
+// // // // //                                     }}
+// // // // //                                 >
+// // // // //                                     {h.label}
+// // // // //                                 </th>
+// // // // //                             ))}
+// // // // //                         </tr>
+// // // // //                     </thead>
+
+// // // // //                     <tbody>
+// // // // //                         {Object.entries(grouped).map(([clusterKey, info], index) => (
+// // // // //                             <tr key={clusterKey} className="hover:bg-gray-50">
+// // // // //                                 {hierarchy.map((h, i) => {
+// // // // //                                     // ➡️ Serial Number (क्र. सं.) Column
+// // // // //                                     if (h.key === "sNo") {
+// // // // //                                         return (
+// // // // //                                             <td key={h.key} className={tailwind.td}>
+// // // // //                                                 {index + 1} 
+// // // // //                                             </td>
+// // // // //                                         );
+// // // // //                                     }
+
+// // // // //                                     return (
+// // // // //                                         <td 
+// // // // //                                             key={h.key} 
+// // // // //                                             className={`${tailwind.td} ${h.key === "clusterName" ? "text-left font-medium" : "text-center"}`}
+// // // // //                                         >
+// // // // //                                             {renderCell(info[h.key], levels.indexOf(h.key))}
+// // // // //                                         </td>
+// // // // //                                     );
+// // // // //                                 })}
+// // // // //                             </tr>
+// // // // //                         ))}
+// // // // //                     </tbody>
+// // // // //                 </table>
+// // // // //             </div>
+// // // // //             {/* --------------------------------------------------- */}
+// // // // //         </div>
+// // // // //     );
+// // // // // }
+
+
+
+
+
+// // // // import { useMemo, useState, useRef } from "react";
+// // // // import { useLocation, useNavigate } from "react-router-dom";
+// // // // import html2canvas from "html2canvas";
+// // // // import jsPDF from "jspdf";
+
+// // // // // Define the structure of your data item
+// // // // type DataItem = {
+// // // //     id: number;
+// // // //     name: string;       // Cluster name
+// // // //     childId: number;    // Lok Sabha id
+// // // //     childName: string;  // Lok Sabha name
+// // // //     childType: string;  // "lok"
+// // // //     vidId: number;      // Vidhan Sabha id
+// // // //     vidhanSabha: string;
+// // // //     manId: number;
+// // // //     manName: string;
+// // // //     sakId: number;
+// // // //     sakName: string;
+// // // //     btId: number;
+// // // //     btName: string;
+// // // // };
+
+// // // // // --- PDF Constants for Best Quality & Margins ---
+// // // // const PDF_MARGIN_MM = 10; 
+// // // // const A4_WIDTH_MM = 297; 
+// // // // const A4_HEIGHT_MM = 210; 
+// // // // // ➡️ INCREASED SCALE FOR MAX QUALITY
+// // // // const DPI_SCALE = 5; 
+
+// // // // // --- Tailwind CSS Classes for Readability in Print ---
+// // // // const tailwind = {
+// // // //     // Header cell styles: Text size is increased to medium (base size)
+// // // //     th: "border border-gray-700 p-2 text-center font-bold whitespace-nowrap text-base bg-gray-200", 
+// // // //     // Data cell styles: Text size is increased to small (14px)
+// // // //     td: "border border-gray-700 p-2 text-center text-sm break-words", 
+// // // //     // Table container
+// // // //     table: "w-full border-collapse bg-white shadow-lg", 
+// // // //     // Main page container
+// // // //     container: "p-5 min-h-screen bg-gray-50",
+// // // //     // Primary page header
+// // // //     pageTitle: "text-2xl font-bold mb-4 text-gray-800",
+// // // //     // Controls container
+// // // //     controls: "flex items-center space-x-4",
+// // // //     // Primary button
+// // // //     primaryBtn: "py-2 px-4 bg-blue-600 text-white font-bold rounded shadow hover:bg-blue-700 transition duration-150",
+// // // //     // Secondary button
+// // // //     secondaryBtn: "py-2 px-4 bg-gray-600 text-white rounded shadow hover:bg-gray-700 transition duration-150",
+// // // //     // Select dropdown
+// // // //     select: "p-2 border rounded",
+// // // //     // Content wrapper for HTML2Canvas (PDF Print Area)
+// // // //     printWrapper: "p-4 bg-white shadow-lg mt-4",
+// // // //     // PDF Header Styles
+// // // //     pdfHeader: "mb-6 flex flex-col items-start border-b pb-2",
+// // // //     pdfH1: "text-xl font-extrabold text-gray-900 mb-1", 
+// // // //     pdfDetail: "text-base font-semibold text-gray-700", 
+// // // // };
+
+// // // // // --- Component ---
+// // // // export default function ClusterReport() {
+// // // //     const location = useLocation();
+// // // //     const navigate = useNavigate();
+// // // //     const data: DataItem[] = (location.state as DataItem[]) || [];
+
+// // // //     // Target the entire content wrapper for capture (including headers)
+// // // //     const contentRef = useRef<HTMLDivElement>(null); 
+// // // //     const tableRef = useRef<HTMLTableElement>(null); 
+
+// // // //     const [showUpTo, setShowUpTo] = useState("vidhans");
+
+// // // //     function groupByCluster(data: DataItem[]) {
+// // // //         const result: Record<string, any> = {};
+
+// // // //         data.forEach((item) => {
+// // // //             const clusterKey = `C_${item.id}`;
+
+// // // //             if (!result[clusterKey]) {
+// // // //                 result[clusterKey] = {
+// // // //                     clusterName: item.name, 
+// // // //                     lokSabhas: new Set<string>(),
+// // // //                     vidhans: new Set<string>(),
+// // // //                     mandals: new Set<string>(),
+// // // //                     sak: new Set<string>(),
+// // // //                     booths: new Set<string>(),
+// // // //                 };
+// // // //             }
+
+// // // //             const cluster = result[clusterKey];
+// // // //             // Store IDs and Names for later name extraction
+// // // //             cluster.lokSabhas.add(item.childId + "_" + item.childName);
+// // // //             cluster.vidhans.add(item.vidId + "_" + item.vidhanSabha.trim());
+// // // //             cluster.mandals.add(item.vidId + "_" + item.manId + "_" + item.manName);
+// // // //             cluster.sak.add(item.vidId + "_" + item.sakId + "_" + item.sakName);
+// // // //             cluster.booths.add(item.vidId + "_" + item.btId + "_" + item.btName);
+// // // //         });
+
+// // // //         return result;
+// // // //     }
+
+// // // //     const grouped = useMemo(() => groupByCluster(data), [data]);
+
+// // // //     const hierarchy = [
+// // // //         { key: "sNo", label: "क्र. सं." }, 
+// // // //         { key: "clusterName", label: "क्लस्टर" },
+// // // //         { key: "lokSabhas", label: "लोकसभा" },
+// // // //         { key: "vidhans", label: "विधानसभा" },
+// // // //         { key: "mandals", label: "मंडल" },
+// // // //         { key: "sak", label: "शक्ति केंद्र" },
+// // // //         { key: "booths", label: "बूथ" },
+// // // //     ];
+
+// // // //     const levels = hierarchy.map((h) => h.key);
+// // // //     const selectedIndex = levels.indexOf(showUpTo);
+
+// // // //     const renderCell = (map: Set<any> | string, levelIndex: number) => {
+// // // //         if (!map) return 0;
+// // // //         if (typeof map === "string") return map;
+
+// // // //         if (levelIndex <= selectedIndex) {
+// // // //             return Array.from(map.values())
+// // // //                 .map((v) => (typeof v === "string" ? v.split("_").slice(-1)[0] : v))
+// // // //                 // ➡️ Uses \n to force vertical expansion for better readability
+// // // //                 .join("\n"); 
+// // // //         }
+
+// // // //         return map.size;
+// // // //     };
+
+// // // //     /**
+// // // //      * Exports the content (Header + Table) to a high-quality, paginated PDF.
+// // // //      */
+// // // //     const exportToPDF = async () => {
+// // // //         if (!contentRef.current) {
+// // // //             alert("Report content not available for export.");
+// // // //             return;
+// // // //         }
+
+// // // //         try {
+// // // //              // ➡️ OPTIMIZATION: Temporarily set table layout to auto for max capture size/quality
+// // // //             if (tableRef.current) {
+// // // //                  tableRef.current.style.tableLayout = "auto";
+// // // //             }
+
+// // // //             // 1. Capture the entire HTML content (Header + Table) as an image
+// // // //             const canvas = await html2canvas(contentRef.current, {
+// // // //                 scale: DPI_SCALE, // High scale for best quality
+// // // //                 useCORS: true,
+// // // //                 logging: false,
+// // // //                 windowWidth: contentRef.current.scrollWidth,
+// // // //                 windowHeight: contentRef.current.scrollHeight,
+// // // //             });
+
+// // // //             if (tableRef.current) {
+// // // //                 // Restore fixed layout for screen display
+// // // //                 tableRef.current.style.tableLayout = "fixed";
+// // // //             }
+
+// // // //             // Use JPEG with quality 1.0 for the captured image
+// // // //             const imgData = canvas.toDataURL("image/jpeg", 1.0); 
+// // // //             const pdf = new jsPDF("l", "mm", "a4"); 
+
+// // // //             const contentWidth_MM = A4_WIDTH_MM - (PDF_MARGIN_MM * 2);
+// // // //             const imgHeight_MM = (canvas.height * contentWidth_MM) / canvas.width;
+
+// // // //             let currentY = PDF_MARGIN_MM; 
+// // // //             let position = 0; 
+
+// // // //             // 2. Handle multi-page content using image clipping
+// // // //             while (position < imgHeight_MM) {
+// // // //                 if (position !== 0) {
+// // // //                     pdf.addPage();
+// // // //                     currentY = PDF_MARGIN_MM; 
+// // // //                 }
+
+// // // //                 const remainingPageSpace = A4_HEIGHT_MM - currentY - PDF_MARGIN_MM;
+// // // //                 const clippingHeight = Math.min(imgHeight_MM - position, remainingPageSpace);
+
+// // // //                 pdf.addImage(
+// // // //                     imgData,
+// // // //                     'JPEG',
+// // // //                     PDF_MARGIN_MM,
+// // // //                     currentY,
+// // // //                     contentWidth_MM,
+// // // //                     clippingHeight,
+// // // //                     undefined,
+// // // //                     'FAST',
+// // // //                     // Source clipping for proper pagination
+// // // //                     { 
+// // // //                         x: 0, 
+// // // //                         y: (position / imgHeight_MM) * canvas.height, 
+// // // //                         w: canvas.width, 
+// // // //                         h: (clippingHeight / imgHeight_MM) * canvas.height 
+// // // //                     }
+// // // //                 );
+
+// // // //                 position += clippingHeight;
+// // // //                 currentY += clippingHeight;
+
+// // // //                 // Add page number 
+// // // //                 pdf.setFontSize(8);
+// // // //                 pdf.text(`Page ${pdf.internal.pages.length - 1}`, A4_WIDTH_MM - PDF_MARGIN_MM, A4_HEIGHT_MM - PDF_MARGIN_MM, { align: 'right' });
+// // // //             }
+
+// // // //             pdf.save("cluster-report-summary.pdf");
+
+// // // //         } catch (err) {
+// // // //             console.error("PDF generation failed:", err);
+// // // //             alert("PDF generation failed. Check the browser console for details.");
+// // // //         }
+// // // //     };
+
+
+// // // //     return (
+// // // //         <div className={tailwind.container}>
+
+// // // //             {/* --- Main Page Header and Controls (Always Visible) --- */}
+// // // //             <div className="flex items-center justify-between border-b pb-4 mb-4">
+// // // //                 <h1 className={tailwind.pageTitle}>क्लस्टर रिपोर्ट (सारांश) 📊</h1>
+
+// // // //                 <div className={tailwind.controls}>
+// // // //                     <button
+// // // //                         onClick={() => navigate('/dashboard')}
+// // // //                         className={tailwind.secondaryBtn}
+// // // //                     >
+// // // //                         ← Back to Dashboard
+// // // //                     </button>
+// // // //                     <div className="flex items-center space-x-2">
+// // // //                         <label className="font-bold text-sm">
+// // // //                             Show detail up to:{" "}
+// // // //                             <select
+// // // //                                 value={showUpTo}
+// // // //                                 onChange={(e) => setShowUpTo(e.target.value)}
+// // // //                                 className={tailwind.select}
+// // // //                             >
+// // // //                                 {hierarchy.filter(h => h.key !== "sNo").map((h) => (
+// // // //                                     <option key={h.key} value={h.key}>
+// // // //                                         {h.label}
+// // // //                                     </option>
+// // // //                                 ))}
+// // // //                             </select>
+// // // //                         </label>
+// // // //                     </div>
+// // // //                     <button
+// // // //                         onClick={exportToPDF}
+// // // //                         className={tailwind.primaryBtn}
+// // // //                     >
+// // // //                         Export to High-Quality PDF 📄
+// // // //                     </button>
+// // // //                 </div>
+// // // //             </div>
+
+// // // //             {/* --------------------------------------------------- */}
+// // // //             {/* --- Content Wrapper for HTML2Canvas (PDF Print Area) --- */}
+// // // //             <div ref={contentRef} className={tailwind.printWrapper}>
+
+// // // //                 {/* Heading and Details (Captured by HTML2Canvas) */}
+// // // //                 <header className={tailwind.pdfHeader}>
+// // // //                     <h1 className={tailwind.pdfH1}>क्लस्टर रिपोर्ट (सारांश)</h1>
+// // // //                     <p className={tailwind.pdfDetail}>
+// // // //                         **विवरण स्तर (Detail Level):** {hierarchy.find(h => h.key === showUpTo)?.label || "क्लस्टर"}
+// // // //                     </p>
+// // // //                 </header>
+
+// // // //                 {/* --- Report Table --- */}
+// // // //                 <table
+// // // //                     ref={tableRef}
+// // // //                     className={tailwind.table}
+// // // //                     // Keep tableLayout fixed for screen consistency, but it will be toggled in exportToPDF
+// // // //                     style={{ tableLayout: "fixed" }}
+// // // //                 >
+// // // //                     <thead>
+// // // //                         <tr className="bg-gray-100">
+// // // //                             {hierarchy.map((h) => (
+// // // //                                 <th 
+// // // //                                     key={h.key} 
+// // // //                                     className={tailwind.th}
+// // // //                                     style={{ 
+// // // //                                         width: h.key === 'sNo' ? '5%' : h.key === 'clusterName' ? '15%' : '16%',
+// // // //                                     }}
+// // // //                                 >
+// // // //                                     {h.label}
+// // // //                                 </th>
+// // // //                             ))}
+// // // //                         </tr>
+// // // //                     </thead>
+
+// // // //                     <tbody>
+// // // //                         {Object.entries(grouped).map(([clusterKey, info], index) => (
+// // // //                             <tr key={clusterKey} className="hover:bg-gray-50">
+// // // //                                 {hierarchy.map((h, i) => {
+// // // //                                     if (h.key === "sNo") {
+// // // //                                         return (
+// // // //                                             <td key={h.key} className={tailwind.td}>
+// // // //                                                 {index + 1} 
+// // // //                                             </td>
+// // // //                                         );
+// // // //                                     }
+
+// // // //                                     return (
+// // // //                                         <td 
+// // // //                                             key={h.key} 
+// // // //                                             className={`${tailwind.td} ${h.key === "clusterName" ? "text-left font-medium" : "text-center"}`}
+// // // //                                         >
+// // // //                                             {renderCell(info[h.key], levels.indexOf(h.key))}
+// // // //                                         </td>
+// // // //                                     );
+// // // //                                 })}
+// // // //                             </tr>
+// // // //                         ))}
+// // // //                     </tbody>
+// // // //                 </table>
+// // // //             </div>
+// // // //             {/* --------------------------------------------------- */}
+// // // //         </div>
+// // // //     );
+// // // // }
+
+// // // import { useMemo, useState, useRef } from "react";
+// // // import { useLocation, useNavigate } from "react-router-dom";
+// // // import html2canvas from "html2canvas";
+// // // import jsPDF from "jspdf";
+
+// // // // Define the structure of your data item
+// // // type DataItem = {
+// // //     id: number;
+// // //     name: string;       // Cluster name
+// // //     childId: number;    // Lok Sabha id
+// // //     childName: string;  // Lok Sabha name
+// // //     childType: string;  // "lok"
+// // //     vidId: number;      // Vidhan Sabha id
+// // //     vidhanSabha: string;
+// // //     manId: number;
+// // //     manName: string;
+// // //     sakId: number;
+// // //     sakName: string;
+// // //     btId: number;
+// // //     btName: string;
+// // // };
+
+// // // // --- PDF Constants for Best Quality & Margins ---
+// // // const PDF_MARGIN_MM = 10; 
+// // // const A4_WIDTH_MM = 297; 
+// // // const A4_HEIGHT_MM = 210; 
+// // // // MAXIMUM SCALE FOR BEST QUALITY
+// // // const DPI_SCALE = 5; 
+
+// // // // --- Tailwind CSS Classes for Maximum Print Readability ---
+// // // const tailwind = {
+// // //     // Header cell styles: text-base (16px) for visibility
+// // //     th: "border border-gray-700 p-2 text-center font-extrabold whitespace-nowrap text-base bg-gray-200", 
+// // //     // Data cell styles: text-base (16px) for largest readable size
+// // //     td: "border border-gray-700 p-2 text-center text-base break-words", 
+// // //     // Table container
+// // //     table: "w-full border-collapse bg-white shadow-lg", 
+// // //     // Main page container
+// // //     container: "p-5 min-h-screen bg-gray-50",
+// // //     // Primary page header
+// // //     pageTitle: "text-2xl font-bold mb-4 text-gray-800",
+// // //     // Controls container
+// // //     controls: "flex items-center space-x-4",
+// // //     // Primary button
+// // //     primaryBtn: "py-2 px-4 bg-blue-600 text-white font-bold rounded shadow hover:bg-blue-700 transition duration-150",
+// // //     // Secondary button
+// // //     secondaryBtn: "py-2 px-4 bg-gray-600 text-white rounded shadow hover:bg-gray-700 transition duration-150",
+// // //     // Select dropdown
+// // //     select: "p-2 border rounded",
+// // //     // Content wrapper for HTML2Canvas (PDF Print Area)
+// // //     printWrapper: "p-4 bg-white shadow-lg mt-4",
+// // //     // PDF Header Styles
+// // //     pdfHeader: "mb-6 flex flex-col items-start border-b pb-2",
+// // //     pdfH1: "text-xl font-extrabold text-gray-900 mb-1", 
+// // //     pdfDetail: "text-base font-semibold text-gray-700", 
+// // // };
+
+// // // // --- Component ---
+// // // export default function ClusterReport() {
+// // //     const location = useLocation();
+// // //     const navigate = useNavigate();
+// // //     const data: DataItem[] = (location.state as DataItem[]) || [];
+
+// // //     const contentRef = useRef<HTMLDivElement>(null); 
+// // //     const tableRef = useRef<HTMLTableElement>(null); 
+
+// // //     const [showUpTo, setShowUpTo] = useState("vidhans");
+
+// // //     function groupByCluster(data: DataItem[]) {
+// // //         const result: Record<string, any> = {};
+// // //  console.log("resis is",result)
+// // //         data.forEach((item) => {
+// // //             const clusterKey = `C_${item.id}`;
+
+// // //             if (!result[clusterKey]) {
+// // //                 result[clusterKey] = {
+// // //                     clusterName: item.name, 
+// // //                     lokSabhas: new Set<string>(),
+// // //                     vidhans: new Set<string>(),
+// // //                     mandals: new Set<string>(),
+// // //                     sak: new Set<string>(),
+// // //                     booths: new Set<string>(),
+// // //                 };
+// // //             }
+
+// // //             const cluster = result[clusterKey];
+// // //             cluster.lokSabhas.add(item.childId + "_" + item.childName);
+// // //             cluster.vidhans.add(item.vidId + "_" + item.vidhanSabha.trim());
+// // //             cluster.mandals.add(item.vidId + "_" + item.manId + "_" + item.manName);
+// // //             cluster.sak.add(item.vidId + "_" + item.sakId + "_" + item.sakName);
+// // //             cluster.booths.add(item.vidId + "_" + item.btId + "_" + item.btName);
+// // //         });
+
+// // //         return result;
+// // //     }
+
+// // //     const grouped = useMemo(() => groupByCluster(data), [data]);
+
+// // //     const hierarchy = [
+// // //         { key: "sNo", label: "क्र. सं." }, 
+// // //         { key: "clusterName", label: "क्लस्टर" },
+// // //         { key: "lokSabhas", label: "लोकसभा" },
+// // //         { key: "vidhans", label: "विधानसभा" },
+// // //         { key: "mandals", label: "मंडल" },
+// // //         { key: "sak", label: "शक्ति केंद्र" },
+// // //         { key: "booths", label: "बूथ" },
+// // //     ];
+
+// // //     const levels = hierarchy.map((h) => h.key);
+// // //     const selectedIndex = levels.indexOf(showUpTo);
+
+// // //     const renderCell = (map: Set<any> | string, levelIndex: number) => {
+// // //         if (!map) return 0;
+// // //         if (typeof map === "string") return map;
+
+// // //         // If the current column is at or before the selected detail level, show names.
+// // //         if (levelIndex <= selectedIndex) {
+// // //             return Array.from(map.values())
+// // //                 .map((v) => (typeof v === "string" ? v.split("_").slice(-1)[0] : v))
+// // //                 // ➡️ CRUCIAL: Uses \n to force vertical expansion, showing items "row by row" in the cell.
+// // //                 .join("\n"); 
+// // //         }
+
+// // //         // Otherwise, show only the count.
+// // //         return map.size;
+// // //     };
+
+// // //     /**
+// // //      * Exports the content (Header + Table) to a high-quality, paginated PDF.
+// // //      */
+// // //     const exportToPDF = async () => {
+// // //         if (!contentRef.current || !tableRef.current) {
+// // //             alert("Report content not available for export.");
+// // //             return;
+// // //         }
+
+// // //         // --- 1. Store Original Styles ---
+// // //         const originalContentWidth = contentRef.current.style.minWidth;
+// // //         const originalTableLayout = tableRef.current.style.tableLayout;
+
+// // //         try {
+// // //             // ➡️ CRUCIAL FIX 1: Maximize Content Width for Capture
+// // //             // Forces html2canvas to render a very wide image for higher quality and larger text size.
+// // //             contentRef.current.style.minWidth = "2000px";
+
+// // //             // ➡️ CRUCIAL FIX 2: Ensure Table Auto-Layout for maximum expansion
+// // //             tableRef.current.style.tableLayout = "auto";
+
+// // //             // 2. Capture the entire HTML content (Header + Table) as an image
+// // //             const canvas = await html2canvas(contentRef.current, {
+// // //                 scale: DPI_SCALE, 
+// // //                 useCORS: true,
+// // //                 logging: false,
+// // //                 windowWidth: contentRef.current.scrollWidth,
+// // //                 windowHeight: contentRef.current.scrollHeight,
+// // //             });
+
+// // //             // 3. Restore Original Styles IMMEDIATELY after capture
+// // //             contentRef.current.style.minWidth = originalContentWidth;
+// // //             tableRef.current.style.tableLayout = originalTableLayout;
+
+// // //             const imgData = canvas.toDataURL("image/jpeg", 1.0); 
+// // //             const pdf = new jsPDF("l", "mm", "a4"); 
+
+// // //             // Calculate effective page width
+// // //             const contentWidth_MM = A4_WIDTH_MM - (PDF_MARGIN_MM * 2);
+// // //             const imgHeight_MM = (canvas.height * contentWidth_MM) / canvas.width;
+
+// // //             let currentY = PDF_MARGIN_MM; 
+// // //             let position = 0; 
+
+// // //             // 4. Handle multi-page content using image clipping (Pagination)
+// // //             while (position < imgHeight_MM) {
+// // //                 if (position !== 0) {
+// // //                     pdf.addPage();
+// // //                     currentY = PDF_MARGIN_MM; 
+// // //                 }
+
+// // //                 const remainingPageSpace = A4_HEIGHT_MM - currentY - PDF_MARGIN_MM;
+// // //                 const clippingHeight = Math.min(imgHeight_MM - position, remainingPageSpace);
+
+// // //                 pdf.addImage(
+// // //                     imgData,
+// // //                     'JPEG',
+// // //                     PDF_MARGIN_MM,
+// // //                     currentY,
+// // //                     contentWidth_MM,
+// // //                     clippingHeight,
+// // //                     undefined,
+// // //                     'FAST',
+// // //                     // Source clipping for proper pagination
+// // //                     { 
+// // //                         x: 0, 
+// // //                         y: (position / imgHeight_MM) * canvas.height, 
+// // //                         w: canvas.width, 
+// // //                         h: (clippingHeight / imgHeight_MM) * canvas.height 
+// // //                     }
+// // //                 );
+
+// // //                 position += clippingHeight;
+// // //                 currentY += clippingHeight;
+
+// // //                 // Add page number 
+// // //                 pdf.setFontSize(8);
+// // //                 pdf.text(`Page ${pdf.internal.pages.length - 1}`, A4_WIDTH_MM - PDF_MARGIN_MM, A4_HEIGHT_MM - PDF_MARGIN_MM, { align: 'right' });
+// // //             }
+
+// // //             pdf.save("cluster-report-summary.pdf");
+
+// // //         } catch (err) {
+// // //             // Ensure styles are restored even if an error occurs
+// // //             if (contentRef.current) contentRef.current.style.minWidth = originalContentWidth;
+// // //             if (tableRef.current) tableRef.current.style.tableLayout = originalTableLayout;
+
+// // //             console.error("PDF generation failed:", err);
+// // //             alert("PDF generation failed. Check the browser console for details.");
+// // //         }
+// // //     };
+
+
+// // //     return (
+// // //         <div className={tailwind.container}>
+
+// // //             {/* --- Main Page Header and Controls (Always Visible) --- */}
+// // //             <div className="flex items-center justify-between border-b pb-4 mb-4">
+// // //                 <h1 className={tailwind.pageTitle}>क्लस्टर रिपोर्ट (सारांश) 📊</h1>
+
+// // //                 <div className={tailwind.controls}>
+// // //                     <button
+// // //                         onClick={() => navigate('/dashboard')}
+// // //                         className={tailwind.secondaryBtn}
+// // //                     >
+// // //                         ← Back to Dashboard
+// // //                     </button>
+// // //                     <div className="flex items-center space-x-2">
+// // //                         <label className="font-bold text-sm">
+// // //                             Show detail up to:{" "}
+// // //                             <select
+// // //                                 value={showUpTo}
+// // //                                 onChange={(e) => setShowUpTo(e.target.value)}
+// // //                                 className={tailwind.select}
+// // //                             >
+// // //                                 {hierarchy.filter(h => h.key !== "sNo").map((h) => (
+// // //                                     <option key={h.key} value={h.key}>
+// // //                                         {h.label}
+// // //                                     </option>
+// // //                                 ))}
+// // //                             </select>
+// // //                         </label>
+// // //                     </div>
+// // //                     <button
+// // //                         onClick={exportToPDF}
+// // //                         className={tailwind.primaryBtn}
+// // //                     >
+// // //                         Export to High-Quality PDF 📄
+// // //                     </button>
+// // //                 </div>
+// // //             </div>
+
+// // //             {/* --------------------------------------------------- */}
+// // //             {/* --- Content Wrapper for HTML2Canvas (PDF Print Area) --- */}
+// // //             <div ref={contentRef} className={tailwind.printWrapper}>
+
+// // //                 {/* Heading and Details (Captured by HTML2Canvas) */}
+// // //                 <header className={tailwind.pdfHeader}>
+// // //                     <h1 className={tailwind.pdfH1}>क्लस्टर रिपोर्ट (सारांश)</h1>
+// // //                     <p className={tailwind.pdfDetail}>
+// // //                         **विवरण स्तर (Detail Level):** {hierarchy.find(h => h.key === showUpTo)?.label || "क्लस्टर"}
+// // //                     </p>
+// // //                 </header>
+
+// // //                 {/* --- Report Table --- */}
+// // //                 <table
+// // //                     ref={tableRef}
+// // //                     className={tailwind.table}
+// // //                     style={{ tableLayout: "fixed" }} // Default screen layout
+// // //                 >
+// // //                     <thead>
+// // //                         <tr className="bg-gray-100">
+// // //                             {hierarchy.map((h) => (
+// // //                                 <th 
+// // //                                     key={h.key} 
+// // //                                     className={tailwind.th}
+// // //                                     style={{ 
+// // //                                         width: h.key === 'sNo' ? '5%' : h.key === 'clusterName' ? '15%' : '16%',
+// // //                                     }}
+// // //                                 >
+// // //                                     {h.label}
+// // //                                 </th>
+// // //                             ))}
+// // //                         </tr>
+// // //                     </thead>
+
+// // //                     <tbody>
+// // //                         {Object.entries(grouped).map(([clusterKey, info], index) => (
+// // //                             <tr key={clusterKey} className="hover:bg-gray-50">
+// // //                                 {hierarchy.map((h, i) => {
+// // //                                     if (h.key === "sNo") {
+// // //                                         return (
+// // //                                             <td key={h.key} className={tailwind.td}>
+// // //                                                 {index + 1} 
+// // //                                             </td>
+// // //                                         );
+// // //                                     }
+
+// // //                                     return (
+// // //                                         <td 
+// // //                                             key={h.key} 
+// // //                                             className={`${tailwind.td} ${h.key === "clusterName" ? "text-left font-medium" : "text-center"}`}
+// // //                                         >
+// // //                                             {renderCell(info[h.key], levels.indexOf(h.key))}
+// // //                                         </td>
+// // //                                     );
+// // //                                 })}
+// // //                             </tr>
+// // //                         ))}
+// // //                     </tbody>
+// // //                 </table>
+// // //             </div>
+// // //             {/* --------------------------------------------------- */}
+// // //         </div>
+// // //     );
+// // // }
+
+
+
+
+
+
+// // import React, { useState, useEffect, useRef } from "react";
+// // import html2pdf from "html2pdf.js";
+// // import { useLocation } from "react-router-dom";
+// // import { buildClusterReport } from "../../../utils/useClusterHierarchy";
+
+// // const ClusterReportPage = () => {
+
+// //     const location = useLocation();
+// //     const data = location.state || [];
+
+// //     const [reportData, setReportData] = useState([]);
+// //     const [upTo, setUpTo] = useState("cluster");
+
+// //     const reportRef = useRef(null);
+
+// //     useEffect(() => {
+// //         const summary = buildClusterReport(data, upTo);
+// //         setReportData(summary);
+// //     }, [upTo, data]);
+
+// //     const exportPdf = () => {
+// //         const element = reportRef.current;
+// //         const opt = {
+// //             margin: 10,
+// //             filename: `ClusterReport_${upTo}.pdf`,
+// //             image: { type: "jpeg", quality: 0.98 },
+// //             html2canvas: { scale: 2 },
+// //             jsPDF: { unit: "mm", format: "a4", orientation: "landscape" },
+// //         };
+// //         if (element) {
+// //             element.classList.add("print-mode");
+// //             html2pdf()
+// //                 .from(element)
+// //                 .set(opt)
+// //                 .save()
+// //                 .finally(() => {
+// //                     element.classList.remove("print-mode");
+// //                 });
+// //         }
+// //     };
+
+// //     // ==============================
+// //     // Table Headers
+// //     // ==============================
+
+// //     const getHeaders = () => {
+
+// //         const head = {
+// //             cluster: "क्लस्टर (Cluster)",
+// //             lok: "लोकसभा (Lok Sabha)",
+// //             vid: "विधानसभा (Vidhan Sabha)",
+// //             mandal: "मंडल",
+// //             sakha: "शाखा",
+// //             booth: "बूथ"
+// //         };
+
+// //         const hierarchy = [head.cluster];
+
+// //         if (["lok", "vidhansabha", "mandal", "sakha", "booth"].includes(upTo)) hierarchy.push(head.lok);
+// //         if (["vidhansabha", "mandal", "sakha", "booth"].includes(upTo)) hierarchy.push(head.vid);
+// //         if (["mandal", "sakha", "booth"].includes(upTo)) hierarchy.push(head.mandal);
+// //         if (["sakha", "booth"].includes(upTo)) hierarchy.push(head.sakha);
+// //         if (upTo === "booth") hierarchy.push(head.booth);
+
+// //         const counts = {
+// //             cluster: ["लोकसभा", "विधानसभा", "मंडल", "शाखा", "बूथ"],
+// //             lok: ["विधानसभा", "मंडल", "शाखा", "बूथ"],
+// //             vidhansabha: ["मंडल", "शाखा", "बूथ"],
+// //             mandal: ["शाखा", "बूथ"],
+// //             sakha: ["बूथ"],
+// //             booth: [],
+// //         };
+
+// //         return { hierarchy, counts: counts[upTo] };
+// //     };
+
+// //     const headers = getHeaders();
+
+// //     const getCounts = (item, lvl) => {
+// //         switch (lvl) {
+// //             case "cluster": return [item.totalLoks, item.totalVidhans, item.totalMandals, item.totalSakhas, item.totalBooths];
+// //             case "lok": return [item.totalVidhans, item.totalMandals, item.totalSakhas, item.totalBooths];
+// //             case "vidhansabha": return [item.totalMandals, item.totalSakhas, item.totalBooths];
+// //             case "mandal": return [item.totalSakhas, item.totalBooths];
+// //             case "sakha": return [item.totalBooths];
+// //             default: return [];
+// //         }
+// //     };
+
+// //     const getRowNames = (c, lvl) => {
+// //         if (lvl === "lok") return [`${c.lokId} - ${c.lokName}`];
+// //         if (lvl === "vidhansabha") return [c.lokName, `${c.vidId} - ${c.vidName}`];
+// //         if (lvl === "mandal") return [c.lokName, c.vidName, `${c.manId} - ${c.manName}`];
+// //         if (lvl === "sakha") return [c.lokName, c.vidName, c.mandalName, `${c.sakId} - ${c.sakName}`];
+// //         if (lvl === "booth") return [c.lokName, c.vidName, c.mandalName, c.sakhaName, `${c.boothId} - ${c.boothName}`];
+// //         return [];
+// //     };
+
+// //     return (
+// //         <div className="p-8 bg-gray-50 min-h-screen">
+// //             <div className="flex justify-between mb-6">
+// //                 <h1 className="text-2xl font-bold">📊 Cluster Booth Report</h1>
+
+// //                 <div className="space-x-3">
+// //                     <select
+// //                         value={upTo}
+// //                         onChange={(e) => setUpTo(e.target.value)}
+// //                         className="p-2 border rounded-md"
+// //                     >
+// //                         <option value="cluster">Cluster तक</option>
+// //                         <option value="lok">लोकसभा तक</option>
+// //                         <option value="vidhansabha">विधानसभा तक</option>
+// //                         <option value="mandal">मंडल तक</option>
+// //                         <option value="sakha">शाखा तक</option>
+// //                         <option value="booth">बूथ तक</option>
+// //                     </select>
+
+// //                     <button
+// //                         onClick={exportPdf}
+// //                         className="px-4 py-2 bg-red-600 text-white rounded-md"
+// //                     >
+// //                         PDF Download
+// //                     </button>
+// //                 </div>
+// //             </div>
+
+// //             <div ref={reportRef}>
+// //                 <table className="min-w-full bg-white shadow rounded">
+// //                     <thead className="bg-blue-600 text-white">
+// //                         <tr>
+// //                             {headers.hierarchy.map((h, i) => (
+// //                                 <th key={i} className="p-3 text-left">{h}</th>
+// //                             ))}
+// //                             {headers.counts.map((h, i) => (
+// //                                 <th key={i} className="p-3 text-center bg-orange-500">{h}</th>
+// //                             ))}
+// //                         </tr>
+// //                     </thead>
+
+// //                     <tbody>
+// //                         {reportData.map(cluster => (
+// //                             <React.Fragment key={cluster.clusterId}>
+// //                                 <tr className="bg-gray-200 font-bold border-t-4 border-blue-600">
+// //                                     <td className="p-3" colSpan={headers.hierarchy.length}>
+// //                                         {cluster.clusterId} - {cluster.clusterName}
+// //                                     </td>
+// //                                     {getCounts(cluster, "cluster")
+// //                                         .slice(headers.hierarchy.length - 1)
+// //                                         .map((c, idx) => (
+// //                                             <td key={idx} className="p-2 text-center bg-orange-100">{c}</td>
+// //                                         ))}
+// //                                 </tr>
+
+// //                                 {cluster.visibleChildren.map((c, idx) => {
+// //                                     const names = getRowNames(c, upTo);
+// //                                     const counts = getCounts(c, upTo);
+
+// //                                     return (
+// //                                         <tr key={idx} className="hover:bg-gray-50">
+// //                                             <td className="p-2"></td>
+// //                                             {names.map((n, i) => (
+// //                                                 <td key={i} className="p-2">{n}</td>
+// //                                             ))}
+// //                                             {counts.map((ct, i) => (
+// //                                                 <td key={i} className="p-2 text-center">{ct}</td>
+// //                                             ))}
+// //                                         </tr>
+// //                                     );
+// //                                 })}
+// //                             </React.Fragment>
+// //                         ))}
+// //                     </tbody>
+// //                 </table>
+// //             </div>
+// //         </div>
+// //     );
+// // };
+
+// // export default ClusterReportPage;
+
+
+
+
+
+// // ClusterReportPage.jsx
+
+// import React, { useState, useEffect, useRef } from 'react';
+// import { useLocation } from 'react-router-dom';
+// import axiosInstance from '../../../service/axiosInstance'; // Assuming this path is correct for your project
+// import { buildClusterReport } from '../../../utils/useClusterHierarchy'; // Assuming this path and function are correct
+
+// const ClusterReportPage = () => {
+//     const location = useLocation();
+//     const data = location.state || [];
+
+//     const [reportData, setReportData] = useState([]);
+//     const [upTo, setUpTo] = useState('cluster'); // 'cluster', 'lok', 'vidhansabha', 'mandal', 'sakha', 'booth'
+//     const [isExporting, setIsExporting] = useState(false);
+//     const reportRef = useRef(null);
+
+//     useEffect(() => {
+//         // This function builds the hierarchical report data based on the 'upTo' level
+//         const summary = buildClusterReport(data, upTo);
+//         setReportData(summary);
+//     }, [upTo, data]);
+
+//     // --- PDF Export Logic (Copied from SambhagReportPage) ---
+//     const exportPdf = async () => {
+//         if (isExporting) return;
+
+//         try {
+//             setIsExporting(true);
+//             const reportElement = reportRef.current;
+//             if (!reportElement) return;
+
+//             // Generate HTML content for the server
+//             const htmlContent = `
+//                 <!DOCTYPE html>
+//                 <html>
+//                 <head>
+//                     <meta charset="UTF-8">
+//                     <style>
+//                         * { margin: 0; padding: 0; box-sizing: border-box; }
+//                         body { font-family: Arial, sans-serif; padding: 20px; }
+//                         table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+//                         th, td { border: 2px solid #000; padding: 15px 10px; text-align: left; font-size: 14px; line-height: 1.5; }
+//                         th { font-weight: bold; text-align: center; font-size: 16px; }
+//                         .text-center { text-align: center; }
+//                         .font-bold { font-weight: bold; }
+//                         .print-header { font-size: 22px; font-weight: bold; margin-bottom: 25px; text-align: center; }
+//                         /* Page break for each Cluster, except the first one */
+//                         .cluster-page { page-break-before: always; }
+//                         .cluster-page:first-child { page-break-before: auto; }
+//                         @page { size: A4 landscape; margin: 0.5in; }
+//                     </style>
+//                 </head>
+//                 <body>
+//                     <div class="print-header">📊 क्लस्टर बूथ रिपोर्ट (Cluster Booth Report)</div>
+//                     ${reportElement.innerHTML}
+//                 </body>
+//                 </html>
+//             `;
+
+//             // Post HTML to the server's PDF generation endpoint
+//             const response = await axiosInstance.post('/generate-pdf', {
+//                 html: htmlContent,
+//                 filename: `ClusterReport_${upTo}_${new Date().toISOString().slice(0, 10)}.pdf`
+//             }, {
+//                 responseType: 'blob' // Important for receiving binary data (PDF)
+//             });
+
+//             // Handle the file download
+//             const blob = new Blob([response.data], { type: 'application/pdf' });
+//             const url = window.URL.createObjectURL(blob);
+//             const a = document.createElement('a');
+//             a.href = url;
+//             a.download = `ClusterReport_${upTo}_${new Date().toISOString().slice(0, 10)}.pdf`;
+//             document.body.appendChild(a);
+//             a.click();
+//             window.URL.revokeObjectURL(url);
+//             document.body.removeChild(a);
+
+//         } catch (error) {
+//             console.error('Error generating PDF:', error);
+//         } finally {
+//             setIsExporting(false);
+//         }
+//     };
+
+
+//     // --- Table Headers based on 'upTo' level (Modified for Cluster Hierarchy) ---
+//     const getTableHeaders = () => {
+//         const baseHeaders = {
+//             cluster: 'क्लस्टर (Cluster)',
+//             lok: 'लोकसभा (Lok Sabha)',
+//             vidhansabha: 'विधानसभा (Vidhan Sabha)',
+//             mandal: 'मंडल (Mandal)',
+//             sakha: 'शाखा (Sakha)',
+//             booth: 'बूथ (Booth)',
+//         };
+
+//         // Dynamic Hierarchy Headers
+//         const hierarchyHeaders = [baseHeaders.cluster];
+//         if (upTo !== 'cluster') { // Lok Sabha is the first level after cluster
+//             hierarchyHeaders.push(baseHeaders.lok);
+//         }
+//         if (upTo === 'vidhansabha' || upTo === 'mandal' || upTo === 'sakha' || upTo === 'booth') {
+//             hierarchyHeaders.push(baseHeaders.vidhansabha);
+//         }
+//         if (upTo === 'mandal' || upTo === 'sakha' || upTo === 'booth') {
+//             hierarchyHeaders.push(baseHeaders.mandal);
+//         }
+//         if (upTo === 'sakha' || upTo === 'booth') {
+//             hierarchyHeaders.push(baseHeaders.sakha);
+//         }
+//         if (upTo === 'booth') {
+//             hierarchyHeaders.push(baseHeaders.booth);
+//         }
+        
+//         // Dynamic Count Headers (Lower Levels only)
+//         const countHeadersMap = {
+//             cluster: ['लोकसभा (Loks)', 'विधानसभा (Vidhan)', 'मंडल (Mandal)', 'शाखा (Sakha)', 'बूथ (Booth)'],
+//             lok: ['विधानसभा (Vidhan)', 'मंडल (Mandal)', 'शाखा (Sakha)', 'बूथ (Booth)'],
+//             vidhansabha: ['मंडल (Mandal)', 'शाखा (Sakha)', 'बूथ (Booth)'],
+//             mandal: ['शाखा (Sakha)', 'बूथ (Booth)'],
+//             sakha: ['बूथ (Booth)'],
+//             booth: [], // No further counts
+//         };
+
+//         return {
+//             hierarchy: hierarchyHeaders,
+//             counts: countHeadersMap[upTo] || [],
+//         };
+//     };
+
+//     const headers = getTableHeaders();
+
+
+//     // --- Dynamic Row Counts (Level of the current row being displayed) ---
+//     const getRowCounts = (item, level) => {
+//         // These properties should be calculated by the 'buildClusterReport' utility
+//         switch (level) {
+//             case 'cluster':
+//                 return [item.totalLoks, item.totalVidhans, item.totalMandals, item.totalSakhas, item.totalBooths];
+//             case 'lok':
+//                 return [item.totalVidhans, item.totalMandals, item.totalSakhas, item.totalBooths];
+//             case 'vidhansabha':
+//                 return [item.totalMandals, item.totalSakhas, item.totalBooths];
+//             case 'mandal':
+//                 return [item.totalSakhas, item.totalBooths];
+//             case 'sakha':
+//                 return [item.totalBooths];
+//             default: // booth
+//                 return [];
+//         }
+//     };
+
+//     // --- Get counts for total rows (for non-cluster levels) ---
+//     const getTotalRowCounts = (cluster, level) => {
+//         const counts = [];
+//         // Note: Logic is slightly simplified compared to Sambhag, focusing on the available counts
+//         switch (level) {
+//             case 'lok': // For Lok Sabha, we want total Vidhansabha, Mandal, Sakha, Booth
+//                 counts.push(cluster.totalVidhans || cluster.visibleChildren.length);
+//                 counts.push(cluster.totalMandals || 0);
+//                 counts.push(cluster.totalSakhas || 0);
+//                 counts.push(cluster.totalBooths || 0);
+//                 break;
+//             case 'vidhansabha': // For Vidhansabha, we want total Mandal, Sakha, Booth
+//                 counts.push(cluster.totalMandals || cluster.visibleChildren.length);
+//                 counts.push(cluster.totalSakhas || 0);
+//                 counts.push(cluster.totalBooths || 0);
+//                 break;
+//             case 'mandal': // For Mandal, we want total Sakha, Booth
+//                 counts.push(cluster.totalSakhas || cluster.visibleChildren.length);
+//                 counts.push(cluster.totalBooths || 0);
+//                 break;
+//             case 'sakha': // For Sakha, we want total Booth
+//                 counts.push(cluster.totalBooths || cluster.visibleChildren.length);
+//                 break;
+//             default: // cluster or booth
+//                 break;
+//         }
+//         return counts;
+//     };
+
+
+//     // --- Helper function to get the displayed name(s) for a child row ---
+//     const getChildNames = (child, level) => {
+//         // Note: The logic is slightly adjusted from the original 'ClusterReportPage' to align with the 'SambhagReportPage' style.
+//         let names = [];
+//         if (level === 'lok') {
+//             names = [child.lokName];
+//         } else if (level === 'vidhansabha') {
+//             names = [child.lokName, child.vidName];
+//         } else if (level === 'mandal') {
+//             names = [child.lokName, child.vidName, child.manName];
+//         } else if (level === 'sakha') {
+//             names = [child.lokName, child.vidName, child.mandalName, child.sakName];
+//         } else if (level === 'booth') {
+//             names = [child.lokName, child.vidName, child.mandalName, child.sakhaName, child.boothName];
+//         }
+//         return names;
+//     };
+
+
+//     // The main render function uses two main branches: 'upTo === cluster' (summary table) and 'upTo !== cluster' (detailed tables with page breaks)
+//     return (
+//         <div className="p-8 bg-white min-h-screen">
+//             {/* Conditional Styles for Print/PDF - Copied from SambhagReportPage */}
+//             <style>
+//                 {`
+//                     /* CSS for PDF generation with Puppeteer */
+//                     ${upTo !== 'cluster' ? '.cluster-page:not(:first-child) { page-break-before: always !important; }' : ''}
+//                     .cluster-page {
+//                         page-break-inside: auto !important;
+//                         overflow: visible !important;
+//                     }
+//                     table {
+//                         page-break-inside: auto !important;
+//                     }
+//                     tbody {
+//                         page-break-inside: auto !important;
+//                     }
+//                     tr {
+//                         page-break-inside: avoid !important;
+//                     }
+
+//                     /* Print styles for A4 landscape with Puppeteer */
+//                     @page {
+//                         size: A4 landscape;
+//                         margin: 0.5in;
+//                     }
+                    
+//                     body {
+//                         -webkit-print-color-adjust: exact;
+//                         print-color-adjust: exact;
+//                     }
+                    
+//                     @media print {
+//                         .no-print {
+//                             display: none !important;
+//                         }
+//                     }
+                    
+//                     table {
+//                         page-break-inside: auto;
+//                         border-collapse: collapse !important;
+//                         width: 100% !important;
+//                     }
+                    
+//                     tr {
+//                         page-break-inside: avoid;
+//                         page-break-after: auto;
+//                     }
+                    
+//                     th, td {
+//                         border: 2px solid #000 !important;
+//                         padding: 12px 8px !important;
+//                         font-size: 14px !important;
+//                         line-height: 1.4 !important;
+//                     }
+                    
+//                     th {
+//                         font-weight: bold !important;
+//                     }
+                    
+//                     .cluster-page:not(:first-child) {
+//                         page-break-before: always !important;
+//                     }
+                    
+//                     .cluster-page {
+//                         page-break-inside: auto !important;
+//                         overflow: visible !important;
+//                     }
+                    
+//                     tbody tr {
+//                         page-break-inside: avoid !important;
+//                     }
+                    
+//                     .print-header {
+//                         font-size: 14px !important;
+//                         margin-bottom: 10px !important;
+//                     }
+//                 `}
+//             </style>
+
+//             <header className="flex justify-between items-center mb-6 border-b pb-4 no-print">
+//                 <h1 className="text-3xl font-bold text-gray-800">📊 क्लस्टर बूथ रिपोर्ट (Cluster Booth Report)</h1>
+//                 <div className="flex space-x-4">
+//                     {/* Level Selector */}
+//                     <select
+//                         value={upTo}
+//                         onChange={(e) => setUpTo(e.target.value)}
+//                         className="p-2 border border-gray-400 rounded-md shadow-sm"
+//                     >
+//                         <option value="cluster">क्लस्टर तक (Up to Cluster)</option>
+//                         <option value="lok">लोकसभा तक (Up to Lok Sabha)</option>
+//                         <option value="vidhansabha">विधानसभा तक (Up to Vidhan Sabha)</option>
+//                         <option value="mandal">मंडल तक (Up to Mandal)</option>
+//                         <option value="sakha">शाखा तक (Up to Sakha)</option>
+//                         <option value="booth">बूथ तक (Up to Booth)</option>
+//                     </select>
+
+//                     {/* PDF Export Button */}
+//                     <button
+//                         onClick={exportPdf}
+//                         disabled={isExporting}
+//                         className={`px-4 py-2 font-semibold rounded-md shadow-md transition duration-300 ${
+//                             isExporting
+//                                 ? 'bg-gray-400 text-gray-600 cursor-not-allowed'
+//                                 : 'bg-gray-700 text-white hover:bg-gray-800'
+//                             }`}
+//                     >
+//                         {isExporting ? '⏳ Generating...' : '⬇️ Export to PDF'}
+//                     </button>
+//                 </div>
+//             </header>
+
+
+//             <div ref={reportRef} className="shadow-lg rounded-lg overflow-hidden border border-gray-400">
+//                 {/* --- 1. CLUSTER SUMMARY VIEW ('upTo' is 'cluster') --- */}
+//                 {upTo === 'cluster' ? (
+//                     <table className="min-w-full divide-y divide-gray-300 border border-gray-400">
+//                         {/* Table Header */}
+//                         <thead className="bg-gray-100 border-b border-gray-400">
+//                             <tr>
+//                                 {/* Hierarchy Headers */}
+//                                 {headers.hierarchy.map((header, index) => (
+//                                     <th
+//                                         key={index}
+//                                         scope="col"
+//                                         className="px-6 py-3 text-left text-xs font-bold uppercase tracking-wider text-gray-900 border-r"
+//                                     >
+//                                         {header}
+//                                     </th>
+//                                 ))}
+
+//                                 {/* Count Headers */}
+//                                 {headers.counts.map((header, index) => (
+//                                     <th
+//                                         key={index}
+//                                         scope="col"
+//                                         className="px-6 py-3 text-center text-xs font-bold uppercase tracking-wider text-gray-900 border-r last:border-r-0"
+//                                     >
+//                                         {header}
+//                                     </th>
+//                                 ))}
+//                             </tr>
+//                         </thead>
+
+//                         <tbody className="divide-y divide-gray-300">
+//                             {reportData.map((cluster) => (
+//                                 <tr key={cluster.clusterId} className="font-extrabold border-t-4 border-blue-600 hover:bg-gray-100 transition duration-150">
+//                                     {/* Cluster Name */}
+//                                     <td className="px-6 py-4 whitespace-nowrap text-lg text-gray-900 border-r border-b" colSpan={headers.hierarchy.length}>
+//                                         {cluster.clusterId} - {cluster.clusterName}
+//                                     </td>
+//                                     {/* Counts for the Cluster level */}
+//                                     {getRowCounts(cluster, 'cluster').map((count, index) => (
+//                                         <td
+//                                             key={index}
+//                                             className="px-6 py-4 whitespace-nowrap text-sm text-center font-extrabold text-gray-900 bg-orange-100 border-r border-b last:border-r-0"
+//                                         >
+//                                             {count}
+//                                         </td>
+//                                     ))}
+//                                 </tr>
+//                             ))}
+//                         </tbody>
+//                     </table>
+//                 ) : (
+//                     /* --- 2. DETAILED VIEW (Lok Sabha, Vidhansabha, etc. with per-cluster page breaks) --- */
+//                     <div>
+//                         {reportData.map((cluster, clusterIndex) => (
+//                             <div key={cluster.clusterId} className={`cluster-page ${clusterIndex > 0 ? "cluster-section" : ""}`}>
+                                
+//                                 <table className="min-w-full divide-y divide-gray-400 border-2 border-gray-600">
+//                                     {/* Table Header (Repeated for each cluster's table) */}
+//                                     <thead className="bg-blue-600 text-white border-b border-gray-600">
+//                                         <tr>
+//                                             {headers.hierarchy.map((header, index) => (
+//                                                 <th
+//                                                     key={index}
+//                                                     scope="col"
+//                                                     className="px-6 py-3 text-left text-xs font-bold uppercase tracking-wider text-white border-r border-blue-700"
+//                                                 >
+//                                                     {header}
+//                                                 </th>
+//                                             ))}
+//                                             {headers.counts.map((header, index) => (
+//                                                 <th
+//                                                     key={index}
+//                                                     scope="col"
+//                                                     className="px-6 py-3 text-center text-xs font-bold uppercase tracking-wider text-white bg-orange-500 border-r border-orange-600 last:border-r-0"
+//                                                 >
+//                                                     {header}
+//                                                 </th>
+//                                             ))}
+//                                         </tr>
+//                                     </thead>
+
+//                                     <tbody className="divide-y divide-gray-300">
+//                                         {/* Children Rows (Lok Sabha, Vidhansabha, Mandal, etc.) */}
+//                                         {cluster.visibleChildren.map((child, index) => {
+//                                             const rowNames = getChildNames(child, upTo);
+//                                             const rowCounts = getRowCounts(child, upTo);
+//                                             // The emptyCellsCount should represent the hierarchy levels *before* the current level's first display name (excluding the Cluster cell)
+//                                             // headers.hierarchy.length is total columns in hierarchy block
+//                                             // rowNames.length is the number of hierarchy levels displayed in this row
+//                                             // -1 accounts for the Cluster column
+//                                             const emptyCellsCount = headers.hierarchy.length - rowNames.length - 1;
+
+//                                             return (
+//                                                 <tr key={index} className="hover:bg-gray-50 transition duration-150">
+//                                                     {/* Cluster Cell (1st cell, show cluster name only once with rowspan) */}
+//                                                     {index === 0 && (
+//                                                         <td
+//                                                             rowSpan={cluster.visibleChildren.length}
+//                                                             className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 text-center font-medium align-middle  border-r border-b"
+//                                                         >
+//                                                             {cluster.clusterId} - {cluster.clusterName}
+//                                                         </td>
+//                                                     )}
+
+//                                                     {/* Empty Cells for higher levels not shown in this row (e.g., Lok Sabha column empty for Vidhansabha rows) */}
+//                                                     {[...Array(emptyCellsCount)].map((_, i) => (
+//                                                         <td key={`empty-${i}`} className={`px-6 py-4 whitespace-nowrap text-sm text-gray-400 border-r border-b`}>
+//                                                             {/* --- */}
+//                                                         </td>
+//                                                     ))}
+
+//                                                     {/* Children Hierarchy Cells (The current level being displayed) */}
+//                                                     {rowNames.map((name, nameIndex) => (
+//                                                         <td
+//                                                             key={nameIndex}
+//                                                             className={`px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-700 border-r border-b`}
+//                                                         >
+//                                                             {name}
+//                                                         </td>
+//                                                     ))}
+
+//                                                     {/* Count Cells (Lower Levels totals) */}
+//                                                     {rowCounts.map((count, countIndex) => (
+//                                                         <td
+//                                                             key={countIndex}
+//                                                             className="px-6 py-4 whitespace-nowrap text-sm text-center text-gray-700 border-r border-b last:border-r-0"
+//                                                         >
+//                                                             {count}
+//                                                         </td>
+//                                                     ))}
+//                                                 </tr>
+//                                             )
+//                                         })}
+
+//                                         {/* Summary Row for the current Cluster */}
+//                                         <tr className="font-extrabold border-t border-gray-600 border-b-4 border-gray-600 bg-gray-200">
+//                                             {/* Total Label + Lok Sabha Count + empty cells to align with hierarchy columns */}
+//                                             <td className="px-6 py-4 whitespace-nowrap text-base font-bold text-gray-900" colSpan={1}>
+//                                                 Total
+//                                             </td>
+//                                             <td className="px-6 py-4 whitespace-nowrap text-base text-center font-bold text-gray-900 border-r border-b">
+//                                                 {cluster.totalLoks || new Set(cluster.visibleChildren.map(child => child.lokName)).size}
+//                                             </td>
+//                                             {[...Array(headers.hierarchy.length - 2)].map((_, i) => (
+//                                                 <td key={`total-empty-${i}`} className="px-6 py-4 whitespace-nowrap text-sm text-gray-400 border-r border-b">
+//                                                     {/* Empty cells to cover remaining hierarchy columns */}
+//                                                 </td>
+//                                             ))}
+                                            
+//                                             {/* Count Totals */}
+//                                             {getTotalRowCounts(cluster, upTo).map((count, index) => (
+//                                                 <td
+//                                                     key={index}
+//                                                     className="px-6 py-4 whitespace-nowrap text-base text-center font-extrabold text-gray-900 bg-orange-300 border-r border-b last:border-r-0"
+//                                                 >
+//                                                     {count}
+//                                                 </td>
+//                                             ))}
+//                                         </tr>
+//                                     </tbody>
+//                                 </table>
+
+//                                 {/* Add spacing after each table/cluster section */}
+//                                 <div className="mb-8"></div>
+//                             </div>
+//                         ))}
+//                     </div>
+//                 )}
+//             </div>
+//         </div>
+//     );
+// };
+
+// export default ClusterReportPage;
+
+
+
+
+// ClusterReportPage.jsx
+
+import React, { useState, useEffect, useRef } from 'react';
+import { useLocation } from 'react-router-dom';
+import axiosInstance from '../../../service/axiosInstance';
+import { buildClusterReport } from '../../../utils/useClusterHierarchy';
+
+const ClusterReportPage = () => {
+    const location = useLocation();
+    const data = location.state || [];
+
+    const [reportData, setReportData] = useState([]);
+    const [upTo, setUpTo] = useState('cluster'); // 'cluster', 'lok', 'vidhansabha', 'mandal', 'sakha', 'booth'
+    const [isExporting, setIsExporting] = useState(false);
+    const reportRef = useRef(null);
+
+    useEffect(() => {
+        // This function builds the hierarchical report data based on the 'upTo' level
+        const summary = buildClusterReport(data, upTo);
+        setReportData(summary);
+    }, [upTo, data]);
+
+    // --- PDF Export Logic ---
+    const exportPdf = async () => {
+        if (isExporting) return;
+
+        try {
+            setIsExporting(true);
+            const reportElement = reportRef.current;
+            if (!reportElement) return;
+
+            // Generate HTML content for the server
+            const htmlContent = `
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <meta charset="UTF-8">
+                    <style>
+                        * { margin: 0; padding: 0; box-sizing: border-box; }
+                        body { font-family: Arial, sans-serif; padding: 20px; }
+                        /* Standard Table Styles (Black borders, white background) */
+                        table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+                        th, td { border: 2px solid #000; padding: 15px 10px; text-align: left; font-size: 14px; line-height: 1.5; }
+                        th { font-weight: bold; text-align: center; font-size: 16px; background-color: transparent; color: #000000; }
+                        
+                        /* Custom Styles for Hierarchy Highlighting */
+                        .cluster-header { background-color: transparent; font-weight: bold; }
+                        .summary-row { background-color: transparent; font-weight: bold; }
+                        
+                        .text-center { text-align: center; }
+                        .font-bold { font-weight: bold; }
+                        .print-header { font-size: 22px; font-weight: bold; margin-bottom: 25px; text-align: center; }
+                        
+                        /* Page break for each Cluster, except the first one */
+                        .cluster-page { page-break-before: always; }
+                        .cluster-page:first-child { page-break-before: auto; }
+                        @page { size: A4 landscape; margin: 0.5in; }
+                    </style>
+                </head>
+                <body>
+                    <div class="print-header">📊 क्लस्टर बूथ रिपोर्ट (Cluster Booth Report)</div>
+                    ${reportElement.innerHTML}
+                </body>
+                </html>
+            `;
+
+            // Post HTML to the server's PDF generation endpoint
+            const response = await axiosInstance.post('/generate-pdf', {
+                html: htmlContent,
+                filename: `ClusterReport_${upTo}_${new Date().toISOString().slice(0, 10)}.pdf`
+            }, {
+                responseType: 'blob' // Important for receiving binary data (PDF)
+            });
+
+            // Handle the file download
+            const blob = new Blob([response.data], { type: 'application/pdf' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `ClusterReport_${upTo}_${new Date().toISOString().slice(0, 10)}.pdf`;
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+            document.body.removeChild(a);
+
+        } catch (error) {
+            console.error('Error generating PDF:', error);
+        } finally {
+            setIsExporting(false);
+        }
+    };
+
+
+    // --- Table Headers based on 'upTo' level (Modified for Cluster Hierarchy) ---
+    const getTableHeaders = () => {
+        const baseHeaders = {
+            cluster: 'क्लस्टर (Cluster)',
+            lok: 'लोकसभा (Lok Sabha)',
+            vidhansabha: 'विधानसभा (Vidhan Sabha)',
+            mandal: 'मंडल (Mandal)',
+            sakha: 'शाखा (Sakha)',
+            booth: 'बूथ (Booth)',
+        };
+
+        // Dynamic Hierarchy Headers
+        const hierarchyHeaders = [baseHeaders.cluster];
+        if (upTo !== 'cluster') { // Lok Sabha is the first level after cluster
+            hierarchyHeaders.push(baseHeaders.lok);
+        }
+        if (upTo === 'vidhansabha' || upTo === 'mandal' || upTo === 'sakha' || upTo === 'booth') {
+            hierarchyHeaders.push(baseHeaders.vidhansabha);
+        }
+        if (upTo === 'mandal' || upTo === 'sakha' || upTo === 'booth') {
+            hierarchyHeaders.push(baseHeaders.mandal);
+        }
+        if (upTo === 'sakha' || upTo === 'booth') {
+            hierarchyHeaders.push(baseHeaders.sakha);
+        }
+        if (upTo === 'booth') {
+            hierarchyHeaders.push(baseHeaders.booth);
+        }
+        
+        // Dynamic Count Headers (Lower Levels only)
+        const countHeadersMap = {
+            cluster: ['लोकसभा (Loks)', 'विधानसभा (Vidhan)', 'मंडल (Mandal)', 'शाखा (Sakha)', 'बूथ (Booth)'],
+            lok: ['विधानसभा (Vidhan)', 'मंडल (Mandal)', 'शाखा (Sakha)', 'बूथ (Booth)'],
+            vidhansabha: ['मंडल (Mandal)', 'शाखा (Sakha)', 'बूथ (Booth)'],
+            mandal: ['शाखा (Sakha)', 'बूथ (Booth)'],
+            sakha: ['बूथ (Booth)'],
+            booth: [], // No further counts
+        };
+
+        return {
+            hierarchy: hierarchyHeaders,
+            counts: countHeadersMap[upTo] || [],
+        };
+    };
+
+    const headers = getTableHeaders();
+
+
+    // --- Dynamic Row Counts (Level of the current row being displayed) ---
+    const getRowCounts = (item, level) => {
+        // These properties should be calculated by the 'buildClusterReport' utility
+        switch (level) {
+            case 'cluster':
+                return [item.totalLoks, item.totalVidhans, item.totalMandals, item.totalSakhas, item.totalBooths];
+            case 'lok':
+                return [item.totalVidhans, item.totalMandals, item.totalSakhas, item.totalBooths];
+            case 'vidhansabha':
+                return [item.totalMandals, item.totalSakhas, item.totalBooths];
+            case 'mandal':
+                return [item.totalSakhas, item.totalBooths];
+            case 'sakha':
+                return [item.totalBooths];
+            default: // booth
+                return [];
+        }
+    };
+
+    // --- Get counts for total rows (for non-cluster levels) ---
+    const getTotalRowCounts = (cluster, level) => {
+        const counts = [];
+        switch (level) {
+            case 'lok': 
+                counts.push(cluster.totalVidhans || cluster.visibleChildren.length);
+                counts.push(cluster.totalMandals || 0);
+                counts.push(cluster.totalSakhas || 0);
+                counts.push(cluster.totalBooths || 0);
+                break;
+            case 'vidhansabha': 
+                counts.push(cluster.totalMandals || cluster.visibleChildren.length);
+                counts.push(cluster.totalSakhas || 0);
+                counts.push(cluster.totalBooths || 0);
+                break;
+            case 'mandal': 
+                counts.push(cluster.totalSakhas || cluster.visibleChildren.length);
+                counts.push(cluster.totalBooths || 0);
+                break;
+            case 'sakha': 
+                counts.push(cluster.totalBooths || cluster.visibleChildren.length);
+                break;
+            default: // cluster or booth
+                break;
+        }
+        return counts;
+    };
+
+
+    // --- Helper function to get the displayed name(s) for a child row ---
+    const getChildNames = (child, level) => {
+        let names = [];
+        // Note: I'm assuming the child objects have properties like 'lokName', 'vidName', etc., which are populated by 'buildClusterReport'.
+        if (level === 'lok') {
+            names = [child.lokName];
+        } else if (level === 'vidhansabha') {
+            names = [child.lokName, child.vidName];
+        } else if (level === 'mandal') {
+            names = [child.lokName, child.vidName, child.manName];
+        } else if (level === 'sakha') {
+            names = [child.lokName, child.vidName, child.mandalName, child.sakName];
+        } else if (level === 'booth') {
+            names = [child.lokName, child.vidName, child.mandalName, child.sakhaName, child.boothName];
+        }
+        return names;
+    };
+
+
+    // The main render function uses two main branches: 'upTo === cluster' (summary table) and 'upTo !== cluster' (detailed tables with page breaks)
+    return (
+        <div className="p-8 bg-white min-h-screen">
+            {/* Conditional Styles for Print/PDF - Standardized for monochrome print */}
+            <style>
+                {`
+                    /* CSS for PDF generation with Puppeteer */
+                    ${upTo !== 'cluster' ? '.cluster-page:not(:first-child) { page-break-before: always !important; }' : ''}
+                    .cluster-page {
+                        page-break-inside: auto !important;
+                        overflow: visible !important;
+                    }
+                    table {
+                        page-break-inside: auto !important;
+                        border-collapse: collapse !important;
+                        width: 100% !important;
+                    }
+                    tbody {
+                        page-break-inside: auto !important;
+                    }
+                    tr {
+                        page-break-inside: avoid !important;
+                    }
+
+                    /* Print styles for A4 landscape with Puppeteer */
+                    @page {
+                        size: A4 landscape;
+                        margin: 0.5in;
+                    }
+                    
+                    body {
+                        -webkit-print-color-adjust: exact;
+                        print-color-adjust: exact;
+                    }
+                    
+                    @media print {
+                        .no-print {
+                            display: none !important;
+                        }
+                    }
+                    
+                    /* Table styling standardization */
+                    th, td {
+                        border: 2px solid #000 !important;
+                        padding: 12px 8px !important;
+                        font-size: 14px !important;
+                        line-height: 1.4 !important;
+                        background-color: #ffffff !important;
+                    }
+                    
+                    th {
+                        font-weight: bold !important;
+                        background-color: transparent !important;
+                        color: #000000 !important;
+                    }
+                    
+                    .cluster-header, .summary-row {
+                        background-color: transparent !important;
+                        font-weight: bold;
+                    }
+
+                    .cluster-page:not(:first-child) {
+                        page-break-before: always !important;
+                    }
+                    
+                    .cluster-page {
+                        page-break-inside: auto !important;
+                        overflow: visible !important;
+                    }
+                    
+                    tbody tr {
+                        page-break-inside: avoid !important;
+                    }
+                    
+                    .print-header {
+                        font-size: 14px !important;
+                        margin-bottom: 10px !important;
+                    }
+                `}
+            </style>
+
+            {/* Header (No Print) */}
+            <header className="flex justify-between items-center mb-6 border-b pb-4 no-print">
+                <h1 className="text-3xl font-bold text-gray-800">📊 क्लस्टर बूथ रिपोर्ट (Cluster Booth Report)</h1>
+                <div className="flex space-x-4">
+                    {/* Level Selector */}
+                    <select
+                        value={upTo}
+                        onChange={(e) => setUpTo(e.target.value)}
+                        className="p-2 border border-gray-400 rounded-md shadow-sm"
+                    >
+                        <option value="cluster">क्लस्टर तक (Up to Cluster)</option>
+                        <option value="lok">लोकसभा तक (Up to Lok Sabha)</option>
+                        <option value="vidhansabha">विधानसभा तक (Up to Vidhan Sabha)</option>
+                        <option value="mandal">मंडल तक (Up to Mandal)</option>
+                        <option value="sakha">शाखा तक (Up to Sakha)</option>
+                        <option value="booth">बूथ तक (Up to Booth)</option>
+                    </select>
+
+                    {/* PDF Export Button */}
+                    <button
+                        onClick={exportPdf}
+                        disabled={isExporting}
+                        className={`px-4 py-2 font-semibold rounded-md shadow-md transition duration-300 ${
+                            isExporting
+                                ? 'bg-gray-400 text-gray-600 cursor-not-allowed'
+                                : 'bg-gray-700 text-white hover:bg-gray-800'
+                            }`}
+                    >
+                        {isExporting ? '⏳ Generating...' : '⬇️ Export to PDF'}
+                    </button>
+                </div>
+            </header>
+
+
+            <div ref={reportRef} className="shadow-lg rounded-lg overflow-hidden border border-gray-400">
+                {/* --- 1. CLUSTER SUMMARY VIEW ('upTo' is 'cluster') --- */}
+                {upTo === 'cluster' ? (
+                    <table className="min-w-full divide-y divide-gray-300 border border-gray-400">
+                        {/* Table Header */}
+                        <thead className="border-b border-gray-400">
+                            <tr>
+                                {/* Hierarchy Headers */}
+                                {headers.hierarchy.map((header, index) => (
+                                    <th
+                                        key={index}
+                                        scope="col"
+                                        className="px-6 py-3 text-left text-xs font-bold uppercase tracking-wider text-black border-r"
+                                    >
+                                        {header}
+                                    </th>
+                                ))}
+
+                                {/* Count Headers */}
+                                {headers.counts.map((header, index) => (
+                                    <th
+                                        key={index}
+                                        scope="col"
+                                        className="px-6 py-3 text-center text-xs font-bold uppercase tracking-wider text-black border-r last:border-r-0"
+                                    >
+                                        {header}
+                                    </th>
+                                ))}
+                            </tr>
+                        </thead>
+
+                        <tbody className="divide-y divide-gray-300">
+                            {reportData.map((cluster) => (
+                                <tr key={cluster.clusterId} className="font-extrabold border-t-4 border-black hover:bg-gray-100 transition duration-150">
+                                    {/* Cluster Name */}
+                                    <td className="px-6 py-4 whitespace-nowrap text-lg text-gray-900 border-r border-b cluster-header" colSpan={headers.hierarchy.length}>
+                                        {cluster.clusterId} - {cluster.clusterName}
+                                    </td>
+                                    {/* Counts for the Cluster level */}
+                                    {getRowCounts(cluster, 'cluster').map((count, index) => (
+                                        <td
+                                            key={index}
+                                            className="px-6 py-4 whitespace-nowrap text-sm text-center font-extrabold text-gray-900 border-r border-b last:border-r-0 summary-row"
+                                        >
+                                            {count}
+                                        </td>
+                                    ))}
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                ) : (
+                    /* --- 2. DETAILED VIEW (Lok Sabha, Vidhansabha, etc. with per-cluster page breaks) --- */
+                    <div>
+                        {reportData.map((cluster, clusterIndex) => (
+                            <div key={cluster.clusterId} className={`cluster-page ${clusterIndex > 0 ? "cluster-section" : ""}`}>
+                                
+                                <table className="min-w-full divide-y divide-gray-400 border-2 border-gray-600">
+                                    {/* Table Header (Repeated for each cluster's table) */}
+                                    <thead className="border-b border-gray-600">
+                                        <tr>
+                                            {headers.hierarchy.map((header, index) => (
+                                                <th
+                                                    key={index}
+                                                    scope="col"
+                                                    className="px-6 py-3 text-left text-xs font-bold uppercase tracking-wider text-black border-r"
+                                                >
+                                                    {header}
+                                                </th>
+                                            ))}
+                                            {headers.counts.map((header, index) => (
+                                                <th
+                                                    key={index}
+                                                    scope="col"
+                                                    className="px-6 py-3 text-center text-xs font-bold uppercase tracking-wider text-black border-r last:border-r-0"
+                                                >
+                                                    {header}
+                                                </th>
+                                            ))}
+                                        </tr>
+                                    </thead>
+
+                                    <tbody className="divide-y divide-gray-300">
+                                        {/* Children Rows (Lok Sabha, Vidhansabha, Mandal, etc.) */}
+                                        {cluster.visibleChildren.map((child, index) => {
+                                            const rowNames = getChildNames(child, upTo);
+                                            const rowCounts = getRowCounts(child, upTo);
+                                            
+                                            // Calculate the number of hierarchy cells to skip (empty cells)
+                                            const emptyCellsCount = headers.hierarchy.length - rowNames.length - 1;
+
+                                            return (
+                                                <tr key={index} className="hover:bg-gray-50 transition duration-150">
+                                                    {/* Cluster Cell (1st cell, show cluster name only once with rowspan) */}
+                                                    {index === 0 && (
+                                                        <td
+                                                            rowSpan={cluster.visibleChildren.length}
+                                                            className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 text-center font-medium align-middle cluster-header"
+                                                        >
+                                                            {cluster.clusterId} - {cluster.clusterName}
+                                                        </td>
+                                                    )}
+
+                                                    {/* Empty Cells for higher levels not shown in this row */}
+                                                    {[...Array(emptyCellsCount)].map((_, i) => (
+                                                        <td key={`empty-${i}`} className={`px-6 py-4 whitespace-nowrap text-sm text-gray-400 border-r border-b`}>
+                                                            {/* --- */}
+                                                        </td>
+                                                    ))}
+
+                                                    {/* Children Hierarchy Cells (The current level being displayed) */}
+                                                    {rowNames.map((name, nameIndex) => (
+                                                        <td
+                                                            key={nameIndex}
+                                                            className={`px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-700 border-r border-b`}
+                                                        >
+                                                            {name}
+                                                        </td>
+                                                    ))}
+
+                                                    {/* Count Cells (Lower Levels totals) */}
+                                                    {rowCounts.map((count, countIndex) => (
+                                                        <td
+                                                            key={countIndex}
+                                                            className="px-6 py-4 whitespace-nowrap text-sm text-center text-gray-700 border-r border-b last:border-r-0"
+                                                        >
+                                                            {count}
+                                                        </td>
+                                                    ))}
+                                                </tr>
+                                            )
+                                        })}
+
+                                        {/* Summary Row for the current Cluster */}
+                                        <tr className="font-extrabold border-t border-gray-600 border-b-4 border-gray-600 summary-row">
+                                            {/* Total Label */}
+                                            <td className="px-6 py-4 whitespace-nowrap text-base font-bold text-gray-900" colSpan={1}>
+                                                Total
+                                            </td>
+                                            {/* Lok Sabha Count (Always the first count after the cluster name) */}
+                                            <td className="px-6 py-4 whitespace-nowrap text-base text-center font-bold text-gray-900 border-r border-b">
+                                                {cluster.totalLoks || new Set(cluster.visibleChildren.map(child => child.lokName)).size}
+                                            </td>
+                                            {/* Empty cells to align with remaining hierarchy columns */}
+                                            {[...Array(headers.hierarchy.length - 2)].map((_, i) => (
+                                                <td key={`total-empty-${i}`} className="px-6 py-4 whitespace-nowrap text-sm text-gray-400 border-r border-b">
+                                                    {/* Empty */}
+                                                </td>
+                                            ))}
+                                            
+                                            {/* Count Totals */}
+                                            {getTotalRowCounts(cluster, upTo).map((count, index) => (
+                                                <td
+                                                    key={index}
+                                                    className="px-6 py-4 whitespace-nowrap text-base text-center font-extrabold text-gray-900 border-r border-b last:border-r-0"
+                                                >
+                                                    {count}
+                                                </td>
+                                            ))}
+                                        </tr>
+                                    </tbody>
+                                </table>
+
+                                {/* Add spacing after each table/cluster section */}
+                                <div className="mb-8"></div>
+                            </div>
+                        ))}
+                    </div>
+                )}
+            </div>
+        </div>
+    );
+};
+
+export default ClusterReportPage;

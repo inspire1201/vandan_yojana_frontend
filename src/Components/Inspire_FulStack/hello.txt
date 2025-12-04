@@ -59,9 +59,7 @@ interface SortConfig {
   direction: SortDirection;
 }
 
-// --- Constants ---
-const CACHE_KEY = "hierarchy_api_data";
-const CACHE_LIFETIME = 24 * 60 * 60 * 1000;
+
 
 // --- Components ---
 
@@ -309,23 +307,15 @@ const HierarchyDropdownTable: React.FC = () => {
     const fetchData = async () => {
       setLoading(true); setError(null);
       try {
-        const cached = localStorage.getItem(CACHE_KEY);
-        if (cached) {
-          const { data, timestamp } = JSON.parse(cached);
-          if (Date.now() - timestamp < CACHE_LIFETIME) {
-            setApiData(data); setLoading(false); return;
-          }
-          localStorage.removeItem(CACHE_KEY);
-        }
+        
         const [sm, clu, vd] = await Promise.all([
           // DataService.getSmData(), DataService.getCluData(), DataService.getVdData()
           axiosInstance.get("/admin/smdata",{ headers: { Authorization: `Bearer ${token}` } }),
           axiosInstance.get("/admin/cludata",{ headers: { Authorization: `Bearer ${token}` } }),
           axiosInstance.get("/admin/vddata",{ headers: { Authorization: `Bearer ${token}` } })
         ]);
-        const liveData: ApiData = { smdata: sm.data || [], cludata: clu.data || [], vddata: vd.data || [] };
+        const liveData: ApiData = { smdata: sm.data.data || [], cludata: clu.data.data || [], vddata: vd.data.data || [] };
         setApiData(liveData);
-        localStorage.setItem(CACHE_KEY, JSON.stringify({ data: liveData, timestamp: Date.now() }));
       } catch (err: any) { setError(err.message); } finally { setLoading(false); }
     };
     fetchData();
