@@ -99,13 +99,6 @@ const AdminDashboard: React.FC = () => {
           description: 'Call center performance metrics',
           color: 'bg-yellow-500'
         },
-        { 
-          title: 'Call Center Report', 
-          path: '/call-center', 
-          icon: Phone,
-          description: 'Call center performance metrics',
-          color: 'bg-purple-500'
-        },
        
        
       ]

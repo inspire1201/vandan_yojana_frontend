@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef, useMemo } from 'react';
-import {  FaChartPie, FaFilePdf, FaSearch, FaPaperPlane, FaCheckCircle } from 'react-icons/fa';
+import { FaChartPie, FaFilePdf, FaSearch, FaPaperPlane, FaCheckCircle } from 'react-icons/fa';
 import { PieChart, Pie, Cell, Legend, Tooltip, ResponsiveContainer } from 'recharts';
 
 
@@ -56,7 +56,7 @@ const formatDateTime = (dateString: string | undefined, timeString: string | und
       time: date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true })
     };
   } catch (e) {
-    console.log("error",e);
+    console.log("error", e);
     return { date: dateString, time: timeString };
   }
 };
@@ -80,6 +80,29 @@ function WhatsappCampaigns() {
 
   const chartRef = useRef<HTMLDivElement>(null);
 
+  // --- Analytics Logic ---
+  const handleShowAnalytics = (campaign: Campaign) => {
+    setSelectedCampaign(campaign);
+    setShowAnalytics(true);
+  };
+
+  const handleCloseAnalytics = () => {
+    setShowAnalytics(false);
+    setSelectedCampaign(null);
+  };
+
+  const getAnalyticsData = (campaign: Campaign): AnalyticsData[] => {
+    if (!campaign) return [];
+    const sent = parseCount(campaign.sent_count);
+    const delivered = parseCount(campaign.delivered_count);
+    const failed = Math.max(0, sent - delivered);
+    return [
+      { name: 'Delivered', value: delivered },
+      { name: 'Failed', value: failed },
+      { name: 'Remaining Sent', value: sent - delivered },
+    ].filter(item => item.value > 0);
+  };
+
   const analyticsData = useMemo(
     () => (selectedCampaign ? getAnalyticsData(selectedCampaign) : []),
     [selectedCampaign]
@@ -87,7 +110,7 @@ function WhatsappCampaigns() {
 
   // --- Data Fetching Effect ---
   useEffect(() => {
-    
+
     const fetchData = async () => {
       try {
         const response = await axiosInstance.get("/champaings", {
@@ -103,7 +126,7 @@ function WhatsappCampaigns() {
         setStats({ totalSent, totalDelivered });
 
         // 3. Process List Data
-        const processedData = sourceData.map((item:any) => {
+        const processedData = sourceData.map((item: any) => {
           const { date, time } = formatDateTime(item.execution_date, item.execution_time);
           return { ...item, execution_date: date, execution_time: time } as Campaign;
         });
@@ -135,30 +158,7 @@ function WhatsappCampaigns() {
     return filteredData.slice(startIndex, startIndex + ITEMS_PER_PAGE);
   }, [filteredData, currentPage]);
 
-  // --- Analytics Logic ---
-  const handleShowAnalytics = (campaign: Campaign) => {
-    setSelectedCampaign(campaign);
-    setShowAnalytics(true);
-  };
-
-  const handleCloseAnalytics = () => {
-    setShowAnalytics(false);
-    setSelectedCampaign(null);
-  };
-
-  const getAnalyticsData = (campaign: Campaign): AnalyticsData[] => {
-    if (!campaign) return [];
-    const sent = parseCount(campaign.sent_count);
-    const delivered = parseCount(campaign.delivered_count);
-    const failed = Math.max(0, sent - delivered);
-    return [
-      { name: 'Delivered', value: delivered },
-      { name: 'Failed', value: failed },
-      { name: 'Remaining Sent', value: sent - delivered },
-    ].filter(item => item.value > 0);
-  };
-
-  const renderCustomizedLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent, name }:any) => {
+  const renderCustomizedLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent, name }: any) => {
     const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
     const x = cx + radius * Math.cos(-midAngle * Math.PI / 180);
     const y = cy + radius * Math.sin(-midAngle * Math.PI / 180);
@@ -169,18 +169,50 @@ function WhatsappCampaigns() {
     );
   };
 
-  
 
+
+  /* Updated handleExportAnalytics to include readable text details */
   const handleExportAnalytics = async () => {
     if (!selectedCampaign || !chartRef.current) return;
     try {
       setExportLoading(true);
       const pdf = new jsPDF('p', 'mm', 'a4');
+
+      // Title
+      pdf.setFontSize(20);
+      pdf.setTextColor(40, 40, 40);
+      pdf.text(`Analytics Report`, 105, 20, { align: 'center' });
+
+      // Campaign Details Section
+      pdf.setFontSize(12);
+      pdf.setTextColor(60, 60, 60);
+
+      const startY = 40;
+      const lineHeight = 10;
+
+      pdf.text(`Campaign Name: ${selectedCampaign.campaign_name}`, 20, startY);
+      pdf.text(`Campaign ID: ${selectedCampaign.campaign_id}`, 20, startY + lineHeight);
+      pdf.text(`Current Status: ${selectedCampaign.status}`, 20, startY + lineHeight * 2);
+      pdf.text(`Execution Date: ${selectedCampaign.execution_date}`, 20, startY + lineHeight * 3);
+
+      // Stats
+      pdf.text(`Total Sent: ${selectedCampaign.sent_count}`, 120, startY + lineHeight);
+      pdf.text(`Total Delivered: ${selectedCampaign.delivered_count}`, 120, startY + lineHeight * 2);
+
+      // Chart Image
       const canvas = await html2canvas(chartRef.current, { scale: 2 });
       const imgData = canvas.toDataURL('image/png');
-      pdf.text(`Analytics: ${selectedCampaign.campaign_name}`, 10, 15);
-      pdf.addImage(imgData, 'PNG', 10, 30, 190, 100);
-      pdf.save(`analytics_${selectedCampaign.campaign_id}.pdf`);
+
+      // Add Chart below details
+      pdf.text(`Visual Analysis:`, 20, startY + lineHeight * 5);
+      pdf.addImage(imgData, 'PNG', 15, startY + lineHeight * 6, 180, 100);
+
+      // Footer
+      pdf.setFontSize(10);
+      pdf.setTextColor(150, 150, 150);
+      pdf.text(`Generated Just Now`, 105, 280, { align: 'center' });
+
+      pdf.save(`Analytics_${selectedCampaign.campaign_name.replace(/\s+/g, '_')}.pdf`);
     } catch (error) { console.error(error); }
     finally { setExportLoading(false); }
   };
@@ -269,8 +301,7 @@ function WhatsappCampaigns() {
                   <table className="min-w-full divide-y divide-gray-200">
                     <thead className="bg-gray-50">
                       <tr>
-                        {['SN', 'Campaign ID', ' Campaign Name', 'Campaign Type', ' Campaign Content', ' Sent Count', 'Campaign Status', 'Size', 'Channels', 'Execution Date', ' Execution Time', 'Delivered Count','Campaign Report' ].map(header => (
-                        // {['SN', 'Campaign ID', ' Campaign Name', 'Campaign Type', ' Campaign Content', ' Sent Count', 'Campaign Status', 'Size', 'Channels', 'Execution Date', ' Execution Time', 'Delivered Count','Campaign Report' ,'Actions'].map(header => (
+                        {['SN', 'Campaign ID', ' Campaign Name', 'Campaign Type', ' Campaign Content', ' Sent Count', 'Campaign Status', 'Size', 'Channels', 'Execution Date', ' Execution Time', 'Delivered Count', 'Campaign Report', 'Actions'].map(header => (
                           <th key={header} className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap">
                             {header}
                           </th>
@@ -289,12 +320,13 @@ function WhatsappCampaigns() {
                               <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-800">{row.campaign_name}</td>
                               <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{row.type}</td>
                               <td className="px-6 py-4 whitespace-nowrap text-sm">
-                                <a href="https://ranneeti.in/nikay_25/wa/content/Campaign-MANIFESTO_suggestions_U1.zip"
+                                <a href={`https://ranneeti.in/nikay_25/wa/content/Campaign-${row.campaign_name}.zip`}
+
                                   download
-                                  
-  className="inline-flex items-center px-4 py-2 bg-indigo-600 text-white font-medium rounded-lg hover:bg-indigo-700 transition"
-                                  >
-                                   ZIP
+
+                                  className="inline-flex items-center px-4 py-2 bg-indigo-600 text-white font-medium rounded-lg hover:bg-indigo-700 transition"
+                                >
+                                  ZIP
                                 </a>
 
                               </td>
@@ -310,28 +342,26 @@ function WhatsappCampaigns() {
                               <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{row.execution_time}</td>
                               <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 font-mono">{row.delivered_count}</td>
                               <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 font-mono">
-<a
-  href="https://ranneeti.in/nikay_25/wa/reports/Report-MANIFESTO_suggestions_U1.zip"
-  download
-  className="inline-flex items-center px-4 py-2 bg-indigo-600 text-white font-medium rounded-lg hover:bg-indigo-700 transition"
->
-  Download Report
-</a>
-
-
+                                <a
+                                  href={`https://ranneeti.in/nikay_25/wa/reports/Report-${row.campaign_name}.zip`}
+                                  download
+                                  className="inline-flex items-center px-4 py-2 bg-indigo-600 text-white font-medium rounded-lg hover:bg-indigo-700 transition"
+                                >
+                                  Download Report
+                                </a>
 
                               </td>
                               <td className="px-6 py-4 whitespace-nowrap text-sm">
-                            
-                                  
-                                  <button
-                                    onClick={() => handleShowAnalytics(row)}
-                                    className="p-2 text-green-600 bg-white border border-green-200 rounded-lg hover:bg-green-50 transition shadow-sm"
-                                    title="View Analytics"
-                                  >
-                                    <FaChartPie className="w-3.5 h-3.5" />
-                                  </button>
-                             
+
+
+                                <button
+                                  onClick={() => handleShowAnalytics(row)}
+                                  className="p-2 text-green-600 bg-white border border-green-200 rounded-lg hover:bg-green-50 transition shadow-sm"
+                                  title="View Analytics"
+                                >
+                                  <FaChartPie className="w-3.5 h-3.5" />
+                                </button>
+
                               </td>
                             </tr>
                           );

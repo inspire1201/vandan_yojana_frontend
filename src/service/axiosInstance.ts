@@ -3,8 +3,8 @@ import { store } from '../store/store';
 // import { logout } from '../store/authSlice';
 // import toast from "react-hot-toast";
 
-// const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ;
-const API_BASE_URL = "/api" ;
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ;
+// const API_BASE_URL = "/api" ;
 
 const axiosInstance = axios.create({
   baseURL: `${API_BASE_URL}/api/v1`,
@@ -12,6 +12,7 @@ const axiosInstance = axios.create({
     "Content-Type": "application/json",
   },
 });
+
 
 // Request interceptor
 axiosInstance.interceptors.request.use(

@@ -1,10 +1,10 @@
 import React, { useEffect, useState, useRef, useMemo } from 'react';
 import { FaFilePdf, FaSearch, FaPaperPlane, FaCheckCircle, FaSms, FaDownload, FaChartPie } from 'react-icons/fa';
 import { PieChart, Pie, Cell, Legend, Tooltip, ResponsiveContainer } from 'recharts';
-import JSZip from 'jszip';
-import { saveAs } from 'file-saver';
+
 import { jsPDF } from 'jspdf';
 import html2canvas from 'html2canvas';
+
 import axiosInstance from '../../service/axiosInstance';
 
 // --- Type Definitions ---
@@ -31,8 +31,8 @@ interface AnalyticsData {
 }
 
 interface CampaignStats {
-    totalSent: number;
-    totalDelivered: number;
+  totalSent: number;
+  totalDelivered: number;
 }
 
 // --- Constants ---
@@ -47,7 +47,7 @@ const formatDateTime = (dateString: string | undefined, timeString: string | und
     const [day, month, year] = dateString.split('/');
     const [hours, minutes, seconds] = timeString.split(':');
     const date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day), parseInt(hours), parseInt(minutes), parseInt(seconds));
-    
+
     if (isNaN(date.getTime())) return { date: dateString, time: timeString };
 
     return {
@@ -60,8 +60,8 @@ const formatDateTime = (dateString: string | undefined, timeString: string | und
 };
 
 const parseCount = (countString: string | undefined): number => {
-    if (!countString) return 0;
-    return parseInt(countString.replace(/,/g, '')) || 0;
+  if (!countString) return 0;
+  return parseInt(countString.replace(/,/g, '')) || 0;
 };
 
 interface AnalyticsData {
@@ -80,22 +80,22 @@ function SMSCampaigns() {
   const [showAnalytics, setShowAnalytics] = useState(false);
   const [selectedCampaign, setSelectedCampaign] = useState<Campaign | null>(null);
   const [exportLoading, setExportLoading] = useState(false);
-  
-  const chartRef = useRef<HTMLDivElement>(null); 
+
+  const chartRef = useRef<HTMLDivElement>(null);
 
   // --- Data Fetching Effect ---
   useEffect(() => {
-  
+
     const fetchData = async () => {
       try {
         // Fetching with type='SMS'
         const response = await axiosInstance.get("/champaings", {
-            params: { type: 'SMS' }
+          params: { type: 'SMS' }
         });
-        
+
         // 1. Extract List Data
         const sourceData = response.data && response.data.allChampaigns ? response.data.allChampaigns : [];
-        
+
         // 2. Extract Stats Data
         const totalSent = response.data.totalSent || 0;
         const totalDelivered = response.data.totalDelivered || 0;
@@ -106,7 +106,7 @@ function SMSCampaigns() {
           const { date, time } = formatDateTime(item.execution_date, item.execution_time);
           return { ...item, execution_date: date, execution_time: time } as Campaign;
         });
-        
+
         setData(processedData);
       } catch (error) {
         console.error("Error fetching data:", error);
@@ -168,49 +168,52 @@ function SMSCampaigns() {
     );
   };
 
-  // --- Download Handlers ---
-  const generatePdfContent = (row: Campaign): jsPDF => {
-    const pdf = new jsPDF();
-    pdf.setFontSize(18);
-    pdf.text(`SMS Campaign Report`, 10, 15);
-    pdf.setFontSize(12);
-    pdf.text(`Campaign ID: ${row.campaign_id || 'N/A'}`, 10, 30);
-    pdf.text(`Status: ${row.status || 'N/A'}`, 10, 37);
-    pdf.text(`Sent: ${row.sent_count || '0'}`, 10, 44);
-    pdf.text(`Delivered: ${row.delivered_count || '0'}`, 10, 51);
-    return pdf;
-  }
 
-  const handleDownloadReport = (row: Campaign) => {
-    try {
-      const pdf = generatePdfContent(row);
-      pdf.save(`sms_campaign_${row.campaign_id}.pdf`);
-    } catch (error) { console.error(error); }
-  };
 
-  const handleDownloadContent = (row: Campaign) => {
-    try {
-        const zip = new JSZip();
-        // Mock content generation for Txt/Content file
-        const content = `Campaign ID: ${row.campaign_id}\nName: ${row.campaign_name}\nSent: ${row.sent_count}`;
-        zip.file(`content_${row.campaign_id}.txt`, content);
-        zip.generateAsync({ type: 'blob' }).then((content) => {
-          saveAs(content, `content_${row.campaign_id}.zip`);
-        });
-    } catch (error) { console.error(error); }
-  };
 
+
+  /* Updated handleExportAnalytics to include readable text details */
   const handleExportAnalytics = async () => {
     if (!selectedCampaign || !chartRef.current) return;
     try {
       setExportLoading(true);
       const pdf = new jsPDF('p', 'mm', 'a4');
+
+      // Title
+      pdf.setFontSize(20);
+      pdf.setTextColor(40, 40, 40);
+      pdf.text(`Analytics Report`, 105, 20, { align: 'center' });
+
+      // Campaign Details Section
+      pdf.setFontSize(12);
+      pdf.setTextColor(60, 60, 60);
+
+      const startY = 40;
+      const lineHeight = 10;
+
+      pdf.text(`Campaign Name: ${selectedCampaign.campaign_name}`, 20, startY);
+      pdf.text(`Campaign ID: ${selectedCampaign.campaign_id}`, 20, startY + lineHeight);
+      pdf.text(`Current Status: ${selectedCampaign.status}`, 20, startY + lineHeight * 2);
+      pdf.text(`Execution Date: ${selectedCampaign.execution_date}`, 20, startY + lineHeight * 3);
+
+      // Stats
+      pdf.text(`Total Sent: ${selectedCampaign.sent_count}`, 120, startY + lineHeight);
+      pdf.text(`Total Delivered: ${selectedCampaign.delivered_count}`, 120, startY + lineHeight * 2);
+
       const canvas = await html2canvas(chartRef.current, { scale: 2 });
       const imgData = canvas.toDataURL('image/png');
-      pdf.text(`Analytics: ${selectedCampaign.campaign_name}`, 10, 15);
-      pdf.addImage(imgData, 'PNG', 10, 30, 190, 100);
-      pdf.save(`analytics_${selectedCampaign.campaign_id}.pdf`);
-    } catch (error) { console.error(error); } 
+
+      // Add Chart below details
+      pdf.text(`Visual Analysis:`, 20, startY + lineHeight * 5);
+      pdf.addImage(imgData, 'PNG', 15, startY + lineHeight * 6, 180, 100);
+
+      // Footer
+      pdf.setFontSize(10);
+      pdf.setTextColor(150, 150, 150);
+      pdf.text(`Generated Just Now`, 105, 280, { align: 'center' });
+
+      pdf.save(`Analytics_${selectedCampaign.campaign_name.replace(/\s+/g, '_')}.pdf`);
+    } catch (error) { console.error(error); }
     finally { setExportLoading(false); }
   };
 
@@ -218,20 +221,20 @@ function SMSCampaigns() {
     const pages = [];
     let startPage = 1, endPage = totalPages;
     if (totalPages > 5) {
-        if (currentPage <= 3) endPage = 5;
-        else if (currentPage >= totalPages - 2) startPage = totalPages - 4;
-        else { startPage = currentPage - 2; endPage = currentPage + 2; }
+      if (currentPage <= 3) endPage = 5;
+      else if (currentPage >= totalPages - 2) startPage = totalPages - 4;
+      else { startPage = currentPage - 2; endPage = currentPage + 2; }
     }
-    for(let i = startPage; i <= endPage; i++) pages.push(i);
+    for (let i = startPage; i <= endPage; i++) pages.push(i);
 
     return (
-        <div className="flex gap-1">
-             <button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage===1} className="px-3 py-1 border rounded hover:bg-gray-100">Prev</button>
-             {pages.map(p => (
-                 <button key={p} onClick={() => setCurrentPage(p)} className={`px-3 py-1 border rounded ${p === currentPage ? 'bg-teal-100 border-teal-300 text-teal-700' : 'hover:bg-gray-100'}`}>{p}</button>
-             ))}
-             <button onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage===totalPages} className="px-3 py-1 border rounded hover:bg-gray-100">Next</button>
-        </div>
+      <div className="flex gap-1">
+        <button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1} className="px-3 py-1 border rounded hover:bg-gray-100">Prev</button>
+        {pages.map(p => (
+          <button key={p} onClick={() => setCurrentPage(p)} className={`px-3 py-1 border rounded ${p === currentPage ? 'bg-teal-100 border-teal-300 text-teal-700' : 'hover:bg-gray-100'}`}>{p}</button>
+        ))}
+        <button onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages} className="px-3 py-1 border rounded hover:bg-gray-100">Next</button>
+      </div>
     )
   };
 
@@ -240,55 +243,55 @@ function SMSCampaigns() {
   return (
     <div className="p-4 sm:p-6 lg:p-8 bg-gray-50 min-h-screen">
       <div className="max-w-7xl mx-auto">
-        
+
         {/* --- Header Section --- */}
         <div className="flex flex-col md:flex-row justify-between items-center mb-8">
-            <h2 className="text-3xl font-bold text-gray-800 mb-4 md:mb-0 flex items-center gap-2">
-               <FaSms className="text-teal-600" /> SMS Campaigns
-            </h2>
-            
-            {/* Search Bar */}
-            <div className="relative w-full md:w-96">
-                <input
-                  type="text"
-                  placeholder="Search campaigns..."
-                  value={searchTerm}
-                  onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
-                  className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl shadow-sm focus:ring-2 focus:ring-teal-500 focus:border-transparent outline-none transition"
-                />
-                <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-            </div>
+          <h2 className="text-3xl font-bold text-gray-800 mb-4 md:mb-0 flex items-center gap-2">
+            <FaSms className="text-teal-600" /> SMS Campaigns
+          </h2>
+
+          {/* Search Bar */}
+          <div className="relative w-full md:w-96">
+            <input
+              type="text"
+              placeholder="Search campaigns..."
+              value={searchTerm}
+              onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
+              className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl shadow-sm focus:ring-2 focus:ring-teal-500 focus:border-transparent outline-none transition"
+            />
+            <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+          </div>
         </div>
 
         {/* --- Stats Summary Cards (Consistent Style) --- */}
         {!loading && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-                {/* Total Sent Card (Blue Theme) */}
-                <div className="bg-white p-6 rounded-xl shadow-md border-l-4 border-blue-500 flex items-center justify-between transition hover:shadow-lg">
-                    <div>
-                        <p className="text-gray-500 text-sm font-medium uppercase tracking-wide">Total Sent</p>
-                        <h3 className="text-3xl font-bold text-gray-800 mt-1">
-                            {stats.totalSent.toLocaleString()}
-                        </h3>
-                    </div>
-                    <div className="p-4 bg-blue-50 rounded-full text-blue-600">
-                        <FaPaperPlane className="w-8 h-8" />
-                    </div>
-                </div>
-
-                {/* Total Delivered Card (Green Theme) */}
-                <div className="bg-white p-6 rounded-xl shadow-md border-l-4 border-emerald-500 flex items-center justify-between transition hover:shadow-lg">
-                    <div>
-                        <p className="text-gray-500 text-sm font-medium uppercase tracking-wide">Total Delivered</p>
-                        <h3 className="text-3xl font-bold text-gray-800 mt-1">
-                            {stats.totalDelivered.toLocaleString()}
-                        </h3>
-                    </div>
-                    <div className="p-4 bg-emerald-50 rounded-full text-emerald-600">
-                        <FaCheckCircle className="w-8 h-8" />
-                    </div>
-                </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+            {/* Total Sent Card (Blue Theme) */}
+            <div className="bg-white p-6 rounded-xl shadow-md border-l-4 border-blue-500 flex items-center justify-between transition hover:shadow-lg">
+              <div>
+                <p className="text-gray-500 text-sm font-medium uppercase tracking-wide">Total Sent</p>
+                <h3 className="text-3xl font-bold text-gray-800 mt-1">
+                  {stats.totalSent.toLocaleString()}
+                </h3>
+              </div>
+              <div className="p-4 bg-blue-50 rounded-full text-blue-600">
+                <FaPaperPlane className="w-8 h-8" />
+              </div>
             </div>
+
+            {/* Total Delivered Card (Green Theme) */}
+            <div className="bg-white p-6 rounded-xl shadow-md border-l-4 border-emerald-500 flex items-center justify-between transition hover:shadow-lg">
+              <div>
+                <p className="text-gray-500 text-sm font-medium uppercase tracking-wide">Total Delivered</p>
+                <h3 className="text-3xl font-bold text-gray-800 mt-1">
+                  {stats.totalDelivered.toLocaleString()}
+                </h3>
+              </div>
+              <div className="p-4 bg-emerald-50 rounded-full text-emerald-600">
+                <FaCheckCircle className="w-8 h-8" />
+              </div>
+            </div>
+          </div>
         )}
 
         {/* --- Main Table Card --- */}
@@ -305,7 +308,7 @@ function SMSCampaigns() {
                   <table className="min-w-full divide-y divide-gray-200">
                     <thead className="bg-gray-50">
                       <tr>
-                        {['SN', 'Campaign ID', 'Name', 'Type', 'Content', 'Size', 'Sent', 'Delivered', 'Status', 'Date', 'Time', 'Actions'].map(header => (
+                        {['SN', 'Campaign ID', 'Name', 'Type', 'Content', 'Size', 'Sent', 'Delivered', 'Status', 'Date', 'Time', 'Campaign Repor', 'Actions'].map(header => (
                           <th key={header} className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap">
                             {header}
                           </th>
@@ -316,9 +319,9 @@ function SMSCampaigns() {
                       {paginatedData.length > 0 ? (
                         paginatedData.map((row, index) => {
                           const serialNumber = (currentPage - 1) * ITEMS_PER_PAGE + index + 1;
-                          const statusColor = row.status === 'COMPLETED' ? 'bg-emerald-100 text-emerald-700 border-emerald-200' : 
-                                              row.status === 'PENDING' ? 'bg-yellow-100 text-yellow-700 border-yellow-200' : 'bg-red-100 text-red-700 border-red-200';
-                          
+                          const statusColor = row.status === 'COMPLETED' ? 'bg-emerald-100 text-emerald-700 border-emerald-200' :
+                            row.status === 'PENDING' ? 'bg-yellow-100 text-yellow-700 border-yellow-200' : 'bg-red-100 text-red-700 border-red-200';
+
                           return (
                             <tr key={row.campaign_id + index} className="hover:bg-gray-50 transition duration-150">
                               <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{serialNumber}</td>
@@ -326,12 +329,36 @@ function SMSCampaigns() {
                               <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-800">{row.campaign_name}</td>
                               <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{row.type}</td>
                               <td className="px-6 py-4 whitespace-nowrap text-sm">
+
                                 <button
-                                  onClick={() => handleDownloadContent(row)}
-                                  className="px-3 py-1 text-xs font-semibold text-white bg-gradient-to-r from-teal-400 to-teal-600 rounded-full hover:shadow-md transition transform hover:-translate-y-0.5"
+                                  onClick={async () => {
+                                    const url = `https://ranneeti.in/nikay_25/sms/content/Campaign-${row.campaign_name}.txt`;
+
+                                    try {
+                                      const response = await fetch(url);
+                                      const text = await response.text(); // read UTF-8 text
+
+                                      const blob = new Blob([text], { type: "text/plain;charset=utf-8" });
+                                      const link = document.createElement("a");
+
+                                      link.href = URL.createObjectURL(blob);
+                                      link.download = `Campaign-${row.campaign_name}.txt`;
+                                      link.click();
+
+                                      URL.revokeObjectURL(link.href);
+                                    } catch (error) {
+                                      console.error("Download failed:", error);
+                                    }
+                                  }}
+                                  className="inline-flex items-center px-4 py-2 bg-indigo-600 text-white font-medium rounded-lg hover:bg-indigo-700 transition"
                                 >
-                                  {row.content_type || 'Txt'}
+                                  Txt
                                 </button>
+
+
+
+
+
                               </td>
                               <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{row.campaign_size}</td>
                               <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 font-mono">{row.sent_count}</td>
@@ -345,34 +372,38 @@ function SMSCampaigns() {
                               <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{row.execution_time}</td>
                               <td className="px-6 py-4 whitespace-nowrap text-sm">
                                 <div className="flex space-x-2">
-                                    <button
-                                    onClick={() => handleDownloadReport(row)}
-                                    className="p-2 text-white bg-teal-500 rounded-lg hover:bg-teal-600 transition shadow-sm"
-                                    title="Download Report"
-                                    >
-                                    <FaDownload className="w-3.5 h-3.5" />
-                                    </button>
-                                    <button
-                                    onClick={() => handleShowAnalytics(row)}
-                                    className="p-2 text-teal-600 bg-white border border-teal-200 rounded-lg hover:bg-teal-50 transition shadow-sm"
-                                    title="View Analytics"
-                                    >
-                                    <FaChartPie className="w-3.5 h-3.5" />
-                                    </button>
+                                  <a
+                                    href={`https://ranneeti.in/nikay_25/sms/reports/${row.campaign_name}.zip`}
+
+                                    download
+                                    className="inline-flex items-center px-4 py-2 bg-indigo-600 text-white font-medium rounded-lg hover:bg-indigo-700 transition"
+                                  >
+                                    Download report
+                                  </a>
+
                                 </div>
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm">
+                                <button
+                                  onClick={() => handleShowAnalytics(row)}
+                                  className="p-2 text-teal-600 bg-white border border-teal-200 rounded-lg hover:bg-teal-50 transition shadow-sm"
+                                  title="View Analytics"
+                                >
+                                  <FaChartPie className="w-3.5 h-3.5" />
+                                </button>
                               </td>
                             </tr>
                           );
                         })
                       ) : (
                         <tr>
-                            <td colSpan={12} className="px-6 py-12 text-center text-gray-500">
-                                <div className="flex flex-col items-center">
-                                    <svg className="w-12 h-12 text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                                    <p className="text-lg font-medium">No campaigns found</p>
-                                    <p className="text-sm">Try adjusting your search terms.</p>
-                                </div>
-                            </td>
+                          <td colSpan={13} className="px-6 py-12 text-center text-gray-500">
+                            <div className="flex flex-col items-center">
+                              <svg className="w-12 h-12 text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                              <p className="text-lg font-medium">No campaigns found</p>
+                              <p className="text-sm">Try adjusting your search terms.</p>
+                            </div>
+                          </td>
                         </tr>
                       )}
                     </tbody>
@@ -405,57 +436,57 @@ function SMSCampaigns() {
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
               </button>
             </div>
-            
-            <div className="p-8">
-                <div className="flex flex-col lg:flex-row gap-8">
-                    {/* Chart */}
-                    <div ref={chartRef} className="w-full lg:w-3/5 h-80">
-                        <ResponsiveContainer width="100%" height="100%">
-                            <PieChart>
-                            <Pie
-                                data={getAnalyticsData(selectedCampaign)}
-                                cx="50%" cy="50%"
-                                labelLine={false}
-                                label={renderCustomizedLabel}
-                                outerRadius={120}
-                                fill="#8884d8"
-                                dataKey="value"
-                            >
-                                {getAnalyticsData(selectedCampaign).map((_, index) => (
-                                <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                                ))}
-                            </Pie>
-                            <Tooltip />
-                            <Legend layout="vertical" verticalAlign="middle" align="right" />
-                            </PieChart>
-                        </ResponsiveContainer>
-                    </div>
 
-                    {/* Details */}
-                    <div className="w-full lg:w-2/5 space-y-4">
-                        <div className="bg-gray-50 p-6 rounded-xl border border-gray-100">
-                            <h4 className="font-semibold text-gray-700 mb-4 text-lg">Campaign Summary</h4>
-                            <div className="space-y-3 text-sm">
-                                <DetailRow label="ID" value={selectedCampaign.campaign_id} />
-                                <DetailRow label="Type" value={selectedCampaign.type} />
-                                <DetailRow label="Status" value={<span className="text-teal-600 font-bold">{selectedCampaign.status}</span>} />
-                                <div className="my-2 border-t border-gray-200"></div>
-                                <DetailRow label="Sent" value={selectedCampaign.sent_count} />
-                                <DetailRow label="Delivered" value={selectedCampaign.delivered_count} />
-                                <DetailRow label="Size" value={selectedCampaign.campaign_size} />
-                            </div>
-                        </div>
-                    </div>
+            <div className="p-8">
+              <div className="flex flex-col lg:flex-row gap-8">
+                {/* Chart */}
+                <div ref={chartRef} className="w-full lg:w-3/5 h-80">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={getAnalyticsData(selectedCampaign)}
+                        cx="50%" cy="50%"
+                        labelLine={false}
+                        label={renderCustomizedLabel}
+                        outerRadius={120}
+                        fill="#8884d8"
+                        dataKey="value"
+                      >
+                        {getAnalyticsData(selectedCampaign).map((_, index) => (
+                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                        ))}
+                      </Pie>
+                      <Tooltip />
+                      <Legend layout="vertical" verticalAlign="middle" align="right" />
+                    </PieChart>
+                  </ResponsiveContainer>
                 </div>
+
+                {/* Details */}
+                <div className="w-full lg:w-2/5 space-y-4">
+                  <div className="bg-gray-50 p-6 rounded-xl border border-gray-100">
+                    <h4 className="font-semibold text-gray-700 mb-4 text-lg">Campaign Summary</h4>
+                    <div className="space-y-3 text-sm">
+                      <DetailRow label="ID" value={selectedCampaign.campaign_id} />
+                      <DetailRow label="Type" value={selectedCampaign.type} />
+                      <DetailRow label="Status" value={<span className="text-teal-600 font-bold">{selectedCampaign.status}</span>} />
+                      <div className="my-2 border-t border-gray-200"></div>
+                      <DetailRow label="Sent" value={selectedCampaign.sent_count} />
+                      <DetailRow label="Delivered" value={selectedCampaign.delivered_count} />
+                      <DetailRow label="Size" value={selectedCampaign.campaign_size} />
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
 
             <div className="p-6 border-t bg-gray-50 rounded-b-2xl flex justify-end gap-3">
-              <button 
+              <button
                 onClick={handleExportAnalytics}
                 disabled={exportLoading}
                 className="px-5 py-2.5 bg-gray-800 text-white rounded-lg hover:bg-gray-900 transition shadow-sm flex items-center"
               >
-                {exportLoading ? 'Exporting...' : <><FaFilePdf className="mr-2"/> Export PDF</>}
+                {exportLoading ? 'Exporting...' : <><FaFilePdf className="mr-2" /> Export PDF</>}
               </button>
               <button onClick={handleCloseAnalytics} className="px-5 py-2.5 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition">
                 Close
@@ -469,10 +500,10 @@ function SMSCampaigns() {
 }
 
 const DetailRow: React.FC<{ label: string, value: React.ReactNode }> = ({ label, value }) => (
-    <div className="flex justify-between items-center">
-      <span className="text-gray-500 font-medium">{label}</span>
-      <span className="text-gray-900 font-semibold">{value}</span>
-    </div>
+  <div className="flex justify-between items-center">
+    <span className="text-gray-500 font-medium">{label}</span>
+    <span className="text-gray-900 font-semibold">{value}</span>
+  </div>
 );
 
 export default SMSCampaigns;
