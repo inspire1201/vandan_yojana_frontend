@@ -4,6 +4,8 @@ import ChampaignHome from "./ChampaignHome";
 import WhatsappCampaigns from "./Whatsapp";
 import CallingCampaigns from "./Calling";
 import SMSCampaigns from "./SMS";
+import CampaignDashboard from "./uploadCampaingns/UpLoadCampaigns";
+
 const DashboardLayout = () => {
   const [activePage, setActivePage] = useState("home");
 
@@ -17,6 +19,8 @@ const DashboardLayout = () => {
         return <SMSCampaigns />;
       case "calling":
         return <CallingCampaigns />;
+      case "campaign-details":
+        return <CampaignDashboard />;
       case "settings":
         return <h1>Settings</h1>;
       default:

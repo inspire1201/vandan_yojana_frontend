@@ -1,73 +1,13 @@
-// import React from 'react';
-// import { useNavigate } from 'react-router-dom';
-// import { useAppSelector } from '../../store/hooks';
-// import { LayoutDashboard, BarChart3, Phone } from 'lucide-react';
-
-// const AdminDashboard: React.FC = () => {
-//   const navigate = useNavigate();
-//   const { user } = useAppSelector((state) => state.auth);
-
-//   // Define buttons with titles, paths, and Lucide icons
-//   const adminButtons = [
-//     { title: 'Mahatari Vandan Yojana Report', path: '/reports', icon: LayoutDashboard },
-//     { title: 'DashBoard Analytics', path: '/show-count', icon: BarChart3 },
-//     { title: 'Call Center Report', path: '/call-center', icon: Phone }
-//   ];
-
-//   return (
-//     // Minimalistic background
-//     <div className="min-h-screen bg-gray-50 py-10 px-3 sm:px-6 lg:px-8">
-//       <div className="max-w-7xl mx-auto">
-        
-//         {/* Simple Header Section */}
-//         <div className="bg-white rounded-lg shadow-md p-5 mb-8 border-l-4 border-orange-500">
-//           <h1 className="text-2xl font-bold text-gray-800 mb-1">
-//             Admin Dashboard
-//           </h1>
-//           <p className="text-gray-600 text-sm">
-//             Welcome, **{user?.name || 'Admin'}**. Use the links below to navigate the system.
-//           </p>
-//         </div>
-
-//         {/* Simplified Dashboard Grid */}
-//         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-//           {adminButtons.map((button, index) => {
-//             const Icon = button.icon;
-//             return (
-//               <button
-//                 key={index}
-//                 onClick={() => navigate(button.path)}
-//                 // Clean, focused styling
-//                 className={`flex items-center justify-start w-full px-5 py-4 
-//                            bg-white rounded-lg shadow-sm border border-gray-200 
-//                            text-gray-700 transition-all duration-200 
-//                            hover:bg-orange-50 hover:border-orange-300 hover:text-orange-600`}
-//               >
-//                 <Icon className="w-5 h-5 mr-3 text-orange-500" />
-//                 <span className="font-medium text-left">{button.title}</span>
-//               </button>
-//             );
-//           })}
-//         </div>
-//       </div>
-//     </div>
-//   );
-// };
-
-// export default AdminDashboard;
 
 
 import { useNavigate } from 'react-router-dom';
 
-import { 
-  LayoutDashboard, 
-  BarChart3, 
-  Phone, 
-
-
+import {
+  LayoutDashboard,
+  BarChart3,
   ChevronRight,
   LucideAlignCenter,
-  
+
 } from 'lucide-react';
 
 const AdminDashboard: React.FC = () => {
@@ -77,39 +17,39 @@ const AdminDashboard: React.FC = () => {
     {
       category: 'Reports & Analytics',
       items: [
-        { 
-          title: 'Mahatari Vandan Yojana Report', 
-          path: '/reports', 
+        {
+          title: 'Mahatari Vandan Yojana Report',
+          path: '/reports',
           icon: LayoutDashboard,
           description: 'View comprehensive reports and analytics',
           color: 'bg-blue-500'
         },
-        { 
-          title: 'Dashboard Analytics', 
+        {
+          title: 'Dashboard Analytics',
           // path: '/dashboard', 
-          path: '/dashboard', 
+          path: '/dashboard',
           icon: BarChart3,
           description: 'Real-time statistics and insights',
           color: 'bg-green-500'
         },
-         { 
-          title: 'Champaingn Dashboard', 
-          path: '/campaign-dashboard', 
+        {
+          title: 'Champaingn Dashboard',
+          path: '/campaign-dashboard',
           icon: LucideAlignCenter,
           description: 'Call center performance metrics',
           color: 'bg-yellow-500'
         },
-       
-       
+
+
       ]
     },
-   
+
   ];
 
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
-  
+
 
       {/* Main Content */}
       <div className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
@@ -118,9 +58,9 @@ const AdminDashboard: React.FC = () => {
           <div className="flex flex-col md:flex-row md:items-center md:justify-center">
             <div className=''>
               <h2 className="text-2xl font-bold mb-2">Welcome to Admin Portal</h2>
-             
+
             </div>
-                        
+
           </div>
         </div>
 
@@ -135,7 +75,7 @@ const AdminDashboard: React.FC = () => {
                   {section.category}
                 </h3>
               </div>
-              
+
               {/* Section Grid */}
               <div className="p-6">
                 <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-2 2xl:grid-cols-3 gap-6 ">
@@ -149,7 +89,7 @@ const AdminDashboard: React.FC = () => {
                       <div className={`${item.color} w-12 h-12 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300`}>
                         <item.icon className="w-6 h-6 text-white" />
                       </div>
-                      
+
                       {/* Content */}
                       <h4 className="font-semibold text-gray-900 text-lg mb-2 group-hover:text-orange-600 transition-colors duration-200">
                         {item.title}
@@ -157,7 +97,7 @@ const AdminDashboard: React.FC = () => {
                       <p className="text-gray-600 text-sm mb-4 leading-relaxed">
                         {item.description}
                       </p>
-                      
+
                       {/* Action Indicator */}
                       <div className="flex items-center justify-between">
                         <span className="text-orange-600 text-sm font-medium group-hover:underline">
@@ -165,7 +105,7 @@ const AdminDashboard: React.FC = () => {
                         </span>
                         <ChevronRight className="w-4 h-4 text-gray-400 group-hover:text-orange-500 group-hover:translate-x-1 transition-all duration-200" />
                       </div>
-                      
+
                       {/* Hover Effect Border */}
                       <div className="absolute inset-0 rounded-xl border-2 border-transparent group-hover:border-orange-200 transition-all duration-300 pointer-events-none"></div>
                     </button>
@@ -176,7 +116,7 @@ const AdminDashboard: React.FC = () => {
           ))}
         </div>
 
-       
+
       </div>
     </div>
   );

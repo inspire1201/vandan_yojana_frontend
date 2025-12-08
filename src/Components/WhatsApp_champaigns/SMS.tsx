@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef, useMemo } from 'react';
-import { FaFilePdf, FaSearch, FaPaperPlane, FaCheckCircle, FaSms, FaDownload, FaChartPie } from 'react-icons/fa';
+import { FaFilePdf, FaSearch, FaPaperPlane, FaCheckCircle, FaSms, FaChartPie } from 'react-icons/fa';
 import { PieChart, Pie, Cell, Legend, Tooltip, ResponsiveContainer } from 'recharts';
 
 import { jsPDF } from 'jspdf';

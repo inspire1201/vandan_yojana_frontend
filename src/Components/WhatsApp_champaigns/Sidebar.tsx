@@ -98,18 +98,20 @@
 // export default Sidebar;
 
 
-   
-import {  FaPhoneAlt, FaSms, FaWhatsapp, FaChartBar, FaTh } from 'react-icons/fa';
+
+import { FaPhoneAlt, FaSms, FaWhatsapp, FaChartBar, FaTh } from 'react-icons/fa';
 
 const NAV_ITEMS = [
     { key: "home", label: "Dashboard", icon: FaTh },
     { key: "whatsapp", label: "WhatsApp", icon: FaWhatsapp },
     { key: "sms", label: "SMS", icon: FaSms },
     { key: "calling", label: "OBD Calling", icon: FaPhoneAlt },
+    { key: "campaign-details", label: "Campaign Details", icon: FaChartBar }, // Using ChartBar for now or import another
+
     // { key: "settings", label: "Settings", icon: FaCog },
 ];
 
-const Sidebar = ({ activePage, setActivePage }:any) => {
+const Sidebar = ({ activePage, setActivePage }: any) => {
     return (
         <nav className="flex flex-col w-64 bg-white shadow-xl p-4">
             <div className="mb-6 text-base font-bold flex items-center gap-2 ">
@@ -122,9 +124,9 @@ const Sidebar = ({ activePage, setActivePage }:any) => {
                         <button
                             onClick={() => setActivePage(item.key)}
                             className={`w-full flex items-center p-3 rounded-lg text-base font-medium
-                              ${activePage === item.key 
-                                  ? "bg-indigo-600 text-white"
-                                  : "text-gray-700 hover:bg-indigo-100 hover:text-indigo-700"}
+                              ${activePage === item.key
+                                    ? "bg-indigo-600 text-white"
+                                    : "text-gray-700 hover:bg-indigo-100 hover:text-indigo-700"}
                             `}
                         >
                             <item.icon className="mr-3" />

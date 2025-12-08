@@ -1,8 +1,7 @@
 import React, { useEffect, useState, useRef, useMemo } from 'react';
-import { FaDownload, FaChartPie, FaFilePdf, FaSearch, FaPhoneVolume, FaCheckCircle } from 'react-icons/fa';
+import {  FaChartPie, FaFilePdf, FaSearch, FaPhoneVolume, FaCheckCircle } from 'react-icons/fa';
 import { PieChart, Pie, Cell, Legend, Tooltip, ResponsiveContainer } from 'recharts';
-import JSZip from 'jszip';
-import { saveAs } from 'file-saver';
+
 import { jsPDF } from 'jspdf';
 import html2canvas from 'html2canvas';
 import axiosInstance from '../../service/axiosInstance';
@@ -165,36 +164,8 @@ function CallingCampaigns() {
     );
   };
 
-  // --- Download Handlers ---
-  const generatePdfContent = (row: Campaign): jsPDF => {
-    const pdf = new jsPDF();
-    pdf.setFontSize(18);
-    pdf.text(`Calling Campaign Report`, 10, 15);
-    pdf.setFontSize(12);
-    pdf.text(`Campaign ID: ${row.campaign_id || 'N/A'}`, 10, 30);
-    pdf.text(`Status: ${row.status || 'N/A'}`, 10, 37);
-    pdf.text(`Sent: ${row.sent_count || '0'}`, 10, 44);
-    pdf.text(`Delivered: ${row.delivered_count || '0'}`, 10, 51);
-    return pdf;
-  }
-
-  const handleDownloadReport = (row: Campaign) => {
-    try {
-      const pdf = generatePdfContent(row);
-      pdf.save(`calling_campaign_${row.campaign_id}.pdf`);
-    } catch (error) { console.error(error); }
-  };
-
-  const handleDownloadZip = async (row: Campaign) => {
-    try {
-      const zip = new JSZip();
-      const pdf = generatePdfContent(row);
-      zip.file(`report_${row.campaign_id}.pdf`, pdf.output('blob'));
-      const zipBlob = await zip.generateAsync({ type: 'blob' });
-      saveAs(zipBlob, `assets_${row.campaign_id}.zip`);
-    } catch (error) { console.error(error); }
-  };
-
+  
+  
   /* Updated handleExportAnalytics to include readable text details */
   const handleExportAnalytics = async () => {
     if (!selectedCampaign || !chartRef.current) return;
